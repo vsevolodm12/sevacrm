@@ -1,0 +1,80 @@
+{% set sym = '$' if order.currency == 'USD' else ('€' if order.currency == 'EUR' else '₽') %}
+<div id="order-{{ order.id }}"
+     class="group flex items-center px-6 py-4 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors {{ 'opacity-50' if not order.is_active }}"
+     onclick="spaNavigate('/orders/{{ order.id }}')">
+
+    <!-- Status dot -->
+    <span class="w-2 h-2 rounded-full flex-shrink-0 mr-5 {{ 'bg-emerald-400' if order.is_active else 'bg-slate-300' }}"></span>
+
+    <!-- Name + Title + meta -->
+    <div class="flex-1 min-w-0 mr-8">
+        <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-sm font-semibold text-slate-900">{{ order.name }}</span>
+            {% if order.title %}
+            <span class="text-sm text-slate-400">{{ order.title }}</span>
+            {% endif %}
+        </div>
+        {% if order.phone or order.start_date %}
+        <div class="flex items-center gap-3 mt-0.5">
+            {% if order.phone %}<span class="text-xs text-slate-400">{{ order.phone }}</span>{% endif %}
+            {% if order.start_date %}<span class="text-xs text-slate-400">с {{ order.start_date.strftime('%d.%m.%Y') }}</span>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Partner -->
+    {% if order.partner %}
+    <span class="text-xs text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full mr-8 flex-shrink-0 hidden sm:block">{{ order.partner.name }}</span>
+    {% endif %}
+
+    <!-- Fees -->
+    <div class="flex items-center gap-6 mr-8 flex-shrink-0">
+        <div class="text-right">
+            <p class="text-xs text-slate-400 mb-0.5">Обслуживание</p>
+            <p class="text-sm font-semibold text-slate-900">{{ sym }}{{ "%.0f"|format(order.monthly_fee or 0) }}<span class="text-xs font-normal text-slate-400">/мес</span></p>
+        </div>
+        {% if order.dev_price and order.dev_price > 0 %}
+        <div class="text-right hidden md:block">
+            <p class="text-xs text-slate-400 mb-0.5">Разработка</p>
+            <p class="text-sm font-semibold text-slate-900">{{ sym }}{{ "%.0f"|format(order.dev_price) }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Payment status -->
+    <div id="payment-toggle-{{ order.id }}" class="mr-4 flex-shrink-0" onclick="event.stopPropagation()">
+        {% if current_payment %}
+            <button hx-put="/orders/payments/{{ current_payment.id }}/toggle"
+                    hx-target="#payment-toggle-{{ order.id }}"
+                    hx-swap="outerHTML"
+                    class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors
+                           {{ 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' if current_payment.is_paid else 'bg-amber-50 text-amber-700 hover:bg-amber-100' }}">
+                {% if current_payment.is_paid %}
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+                Оплачено
+                {% else %}
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Ожидает
+                {% endif %}
+            </button>
+        {% else %}
+            <span class="text-xs text-slate-300 px-2.5 py-1">нет записи</span>
+        {% endif %}
+    </div>
+
+    <!-- Delete (instant, no confirm) -->
+    <button hx-delete="/orders/{{ order.id }}"
+            hx-target="#order-{{ order.id }}"
+            hx-swap="outerHTML"
+            onclick="event.stopPropagation()"
+            class="p-1.5 text-slate-300 hover:text-red-500 transition-colors rounded-lg opacity-0 group-hover:opacity-100 flex-shrink-0">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+    </button>
+</div>

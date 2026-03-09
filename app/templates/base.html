@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru" class="h-full">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>{% block title %}SevaCRM{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['-apple-system','BlinkMacSystemFont','Inter','Segoe UI','sans-serif'] },
+                }
+            }
+        }
+    </script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        .htmx-indicator { opacity: 0; transition: opacity 150ms; }
+        .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+        * { -webkit-font-smoothing: antialiased; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        @keyframes pagein { from { opacity:0; } to { opacity:1; } }
+        #page-content { animation: pagein 120ms ease; }
+        /* Prevent sidebar flash during navigation */
+        html::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: 288px;
+            background: #0d1117;
+            z-index: 0;
+        }
+        /* Disable submit button during htmx request */
+        form.htmx-request [type="submit"] {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-50 font-sans">
+
+<!-- Sidebar -->
+<div id="sidebar"
+     class="fixed inset-y-0 left-0 w-72 bg-[#0d1117] flex flex-col z-30 border-r border-white/5"
+     style="position:fixed;top:0;bottom:0;left:0;width:288px;background:#0d1117;display:flex;flex-direction:column;z-index:30;border-right:1px solid rgba(255,255,255,0.05)">
+    <div class="flex items-center h-16 px-5">
+        <span class="text-white text-2xl font-bold tracking-tight">Seva<span class="text-indigo-400">CRM</span></span>
+    </div>
+
+    <nav class="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+        {% set nav = [
+            ('/', 'Дашборд', 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'),
+            ('/orders', 'Заказы', 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'),
+            ('/partners', 'Партнёры', 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'),
+            ('/stats', 'Статистика', 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'),
+        ] %}
+        {% for href, label, path_d in nav %}
+            {% set active = (request.url.path == href) or (href != '/' and request.url.path.startswith(href)) %}
+            <a href="{{ href }}"
+               data-nav-href="{{ href }}"
+               hx-get="{{ href }}"
+               hx-target="#page-content"
+               hx-select="#page-content"
+               hx-swap="outerHTML"
+               hx-push-url="true"
+               class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium transition-all duration-100
+                      {{ 'bg-white/10 text-white' if active else 'text-slate-400 hover:bg-white/5 hover:text-slate-200' }}">
+                <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="{{ path_d }}"/>
+                </svg>
+                {{ label }}
+            </a>
+        {% endfor %}
+    </nav>
+
+    <div class="px-2 py-3 border-t border-white/5">
+        <div class="flex items-center justify-between px-3 py-2">
+            <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 bg-indigo-500 rounded-lg flex items-center justify-center text-white text-xs font-bold">
+                    {{ current_user.username[0].upper() if current_user else 'A' }}
+                </div>
+                <span class="text-sm text-slate-400">{{ current_user.username if current_user else '' }}</span>
+            </div>
+            <a href="/logout" class="text-slate-600 hover:text-slate-400 transition-colors" title="Выйти">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Main (swappable via HTMX) -->
+<div id="page-content" class="ml-72 min-h-full"
+     style="margin-left:288px;min-height:100vh">
+    <header class="h-16 bg-white border-b border-slate-100 flex items-center px-8 sticky top-0 z-20 gap-3">
+        {% block header_left %}{% endblock %}
+        <h1 class="text-xl font-bold text-slate-900 tracking-tight">{% block page_title %}{% endblock %}</h1>
+        <div class="ml-auto flex items-center gap-3">
+            {% block header_actions %}{% endblock %}
+        </div>
+    </header>
+    <main class="p-8">
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+<!-- Toast (Alpine) -->
+<div class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"
+     x-data="toastMgr()"
+     @showtoast.window="add($event.detail)">
+    <template x-for="t in toasts" :key="t.id">
+        <div x-show="t.visible"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 translate-y-1"
+             x-transition:enter-end="opacity-100 translate-y-0"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-end="opacity-0"
+             class="pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-xs font-medium min-w-56 border"
+             :class="{
+                'bg-white border-emerald-200 text-emerald-800': t.type === 'success',
+                'bg-white border-red-200 text-red-700': t.type === 'error',
+                'bg-white border-blue-200 text-blue-700': t.type === 'info',
+             }">
+            <span x-show="t.type==='success'" class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
+            <span x-show="t.type==='error'" class="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0"></span>
+            <span x-show="t.type==='info'" class="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"></span>
+            <span x-text="t.message"></span>
+        </div>
+    </template>
+</div>
+
+<!-- Delete confirm modal (vanilla JS, no Alpine) -->
+<div id="del-modal" style="display:none"
+     class="fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/25 backdrop-blur-[2px]" onclick="closeDel()"></div>
+    <div class="relative bg-white rounded-2xl shadow-2xl w-80 mx-4 z-10 overflow-hidden">
+        <div class="px-6 pt-6 pb-4">
+            <p class="text-sm font-semibold text-slate-900 mb-1">Удалить?</p>
+            <p id="del-msg" class="text-sm text-slate-500"></p>
+        </div>
+        <div class="px-6 pb-5 flex justify-end gap-3">
+            <button onclick="closeDel()"
+                    class="px-4 py-2 text-sm text-slate-500 hover:text-slate-800 transition-colors">
+                Отмена
+            </button>
+            <button id="del-confirm"
+                    class="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors">
+                Удалить
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function toastMgr() {
+    return {
+        toasts: [],
+        add(d) {
+            const id = Date.now();
+            const msg = d.message || d;
+            const type = d.type || 'success';
+            this.toasts.push({ id, message: msg, type, visible: true });
+            setTimeout(() => {
+                const t = this.toasts.find(x => x.id === id);
+                if (t) t.visible = false;
+                setTimeout(() => { this.toasts = this.toasts.filter(x => x.id !== id); }, 200);
+            }, 3000);
+        }
+    }
+}
+
+// Vanilla JS delete modal
+let _delFn = null;
+function showDel(message, fn) {
+    document.getElementById('del-msg').textContent = message;
+    _delFn = fn;
+    document.getElementById('del-modal').style.display = 'flex';
+}
+function closeDel() {
+    document.getElementById('del-modal').style.display = 'none';
+    _delFn = null;
+}
+document.getElementById('del-confirm').addEventListener('click', function() {
+    if (_delFn) _delFn();
+    closeDel();
+});
+
+// HTMX toast trigger
+document.addEventListener('htmx:afterRequest', function(e) {
+    const trigger = e.detail.xhr?.getResponseHeader('HX-Trigger');
+    if (!trigger) return;
+    try {
+        const d = JSON.parse(trigger);
+        if (d.showToast) window.dispatchEvent(new CustomEvent('showtoast', { detail: d.showToast }));
+    } catch(_) {}
+});
+
+// HTMX partial swap: after swapping page-content, re-init Alpine + update nav active state
+document.addEventListener('htmx:afterSettle', function(e) {
+    if (e.detail.target && e.detail.target.id === 'page-content') {
+        // Re-initialize Alpine on new content
+        if (window.Alpine) {
+            Alpine.initTree(document.getElementById('page-content'));
+        }
+        // Update page title from response
+        const html = e.detail.xhr?.responseText;
+        if (html) {
+            const m = html.match(/<title>([\s\S]*?)<\/title>/);
+            if (m) document.title = m[1];
+        }
+        // Update nav active state
+        updateNavActive(window.location.pathname);
+    }
+});
+
+function updateNavActive(path) {
+    document.querySelectorAll('[data-nav-href]').forEach(function(a) {
+        const href = a.dataset.navHref;
+        const isActive = href === '/' ? path === '/' : path.startsWith(href);
+        if (isActive) {
+            a.classList.add('bg-white/10', 'text-white');
+            a.classList.remove('text-slate-400', 'hover:bg-white/5', 'hover:text-slate-200');
+        } else {
+            a.classList.remove('bg-white/10', 'text-white');
+            a.classList.add('text-slate-400', 'hover:bg-white/5', 'hover:text-slate-200');
+        }
+    });
+}
+
+// SPA navigation helper (used by row clicks, etc.)
+function spaNavigate(url) {
+    htmx.ajax('GET', url, {
+        target: '#page-content',
+        swap: 'outerHTML',
+        select: '#page-content'
+    });
+    history.pushState({}, '', url);
+    updateNavActive(url);
+}
+
+// Handle browser back/forward
+window.addEventListener('popstate', function() {
+    htmx.ajax('GET', window.location.pathname, {
+        target: '#page-content',
+        swap: 'outerHTML',
+        select: '#page-content'
+    });
+});
+</script>
+
+</body>
+</html>

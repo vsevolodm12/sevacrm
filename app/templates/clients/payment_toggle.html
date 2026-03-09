@@ -1,0 +1,20 @@
+<div id="payment-toggle-{{ payment.id }}">
+    <button
+        hx-put="/clients/payments/{{ payment.id }}/toggle"
+        hx-target="#payment-toggle-{{ payment.id }}"
+        hx-swap="outerHTML"
+        class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors
+               {% if payment.is_paid %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-amber-100 text-amber-700 hover:bg-amber-200{% endif %}">
+        {% if payment.is_paid %}
+        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+        </svg>
+        Оплачено
+        {% else %}
+        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Ожидает
+        {% endif %}
+    </button>
+</div>

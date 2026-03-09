@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: sevacrm_app
+    volumes:
+      - ./sevacrm.db:/app/sevacrm.db
+      - ./uploads:/app/uploads
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-changeme-please-set-in-env}
+      - DATABASE_URL=sqlite:///./sevacrm.db
+      - UPLOAD_DIR=uploads
+    restart: unless-stopped
+    expose:
+      - "8000"
+
+  nginx:
+    image: nginx:alpine
+    container_name: sevacrm_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./uploads:/uploads:ro
+    depends_on:
+      - app
+    restart: unless-stopped

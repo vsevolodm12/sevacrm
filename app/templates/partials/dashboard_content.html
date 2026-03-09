@@ -1,0 +1,168 @@
+<div id="dashboard-content"
+     x-data="{ month: {{ month }}, year: {{ year }} }">
+
+    <!-- Month Navigator -->
+    <div class="flex items-center gap-3 mb-8">
+        {% set prev_month = (month - 1) if month > 1 else 12 %}
+        {% set prev_year = year if month > 1 else (year - 1) %}
+        {% set next_month = (month + 1) if month < 12 else 1 %}
+        {% set next_year = year if month < 12 else (year + 1) %}
+        <a href="/?month={{ prev_month }}&year={{ prev_year }}"
+           class="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <span class="text-base font-semibold text-slate-900 min-w-36 text-center">{{ month_name }} {{ year }}</span>
+        <a href="/?month={{ next_month }}&year={{ next_year }}"
+           class="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+
+        <!-- В обслуживании -->
+        <div class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">В обслуживании</p>
+                    <p class="mt-2 text-3xl font-bold text-slate-900">{{ stats.active_clients_count }}</p>
+                    <p class="mt-1 text-sm text-slate-500">клиентов</p>
+                </div>
+                <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-slate-100">
+                <p class="text-sm font-medium text-slate-700">
+                    ₽ {{ "%.0f"|format(stats.monthly_maintenance_total) }} / мес
+                </p>
+            </div>
+        </div>
+
+        <!-- Мой доход -->
+        <div class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Мой доход за месяц</p>
+                    <p class="mt-2 text-3xl font-bold text-green-600">
+                        ₽ {{ "%.0f"|format(stats.total_month_income) }}
+                    </p>
+                    <p class="mt-1 text-sm text-slate-500">
+                        моя доля
+                    </p>
+                </div>
+                <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            {% if stats.partner_paid and stats.partner_paid > 0 %}
+            <div class="mt-3 pt-3 border-t border-slate-100">
+                <span class="text-xs text-purple-500">+ ₽ {{ "%.0f"|format(stats.partner_paid) }} доля партнёров</span>
+            </div>
+            {% else %}
+            <div class="mt-3 pt-3 border-t border-slate-100">
+                <span class="text-xs text-slate-400">нет партнёрских заказов</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Ожидается -->
+        <div class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-shadow">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Ожидается</p>
+                    <p class="mt-2 text-3xl font-bold text-amber-600">
+                        ₽ {{ "%.0f"|format(stats.monthly_maintenance_pending) }}
+                    </p>
+                    <p class="mt-1 text-sm text-slate-500">не оплачено</p>
+                </div>
+                <div class="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="h-5 w-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-slate-100">
+                <span class="text-xs text-slate-400">моя доля неоплаченного</span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Clients payment status (full width) -->
+    <div class="bg-white rounded-xl border border-slate-200">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h3 class="text-sm font-semibold text-slate-900">Заказы — обслуживание</h3>
+            <span class="text-xs text-slate-500">{{ month_name }} {{ year }}</span>
+        </div>
+        <div class="divide-y divide-slate-50">
+            {% if clients_with_status %}
+                {% for item in clients_with_status %}
+                <div class="px-5 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 text-xs font-semibold flex-shrink-0">
+                            {{ item.client.name[0].upper() }}
+                        </div>
+                        <div class="min-w-0">
+                            <a href="/orders/{{ item.client.id }}"
+                               class="text-sm font-medium text-slate-900 hover:text-indigo-600 transition-colors truncate block">{{ item.client.name }}</a>
+                            {% if item.client.partner %}
+                            <span class="text-xs text-purple-500">{{ item.client.partner.name }} · 50/50</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 flex-shrink-0 ml-3">
+                        <span class="text-sm font-medium text-slate-700">
+                            {% if item.client.currency == 'USD' %}${% elif item.client.currency == 'EUR' %}€{% else %}₽{% endif %}
+                            {{ "%.0f"|format(item.client.monthly_fee or 0) }}
+                        </span>
+                        <div id="payment-toggle-{{ item.client.id }}">
+                            {% if item.payment %}
+                                <button
+                                    hx-put="/orders/payments/{{ item.payment.id }}/toggle"
+                                    hx-target="#payment-toggle-{{ item.client.id }}"
+                                    hx-swap="outerHTML"
+                                    class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors
+                                           {% if item.payment.is_paid %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-amber-100 text-amber-700 hover:bg-amber-200{% endif %}">
+                                    {% if item.payment.is_paid %}
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                                    </svg>
+                                    Оплачено
+                                    {% else %}
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Ожидает
+                                    {% endif %}
+                                </button>
+                            {% else %}
+                                <span class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+                                    Нет записи
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="px-5 py-8 text-center text-sm text-slate-400">
+                    Нет активных клиентов
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>

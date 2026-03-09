@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+
+{% block title %}{{ order.title or order.name }} — SevaCRM{% endblock %}
+
+{% block header_left %}
+<button onclick="spaNavigate('/orders')"
+        class="flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-700 transition-colors flex-shrink-0">
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Заказы
+</button>
+<span class="text-slate-200">|</span>
+{% endblock %}
+
+{% block page_title %}{{ order.title or order.name }}{% endblock %}
+
+{% block header_actions %}
+<button hx-get="/orders/{{ order.id }}/edit"
+        hx-target="#order-inline-edit"
+        hx-swap="innerHTML"
+        class="flex items-center gap-1.5 px-4 py-2 text-sm text-slate-600 bg-slate-100 hover:bg-slate-200 font-medium rounded-xl transition-colors">
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+    </svg>
+    Редактировать
+</button>
+<button hx-delete="/orders/{{ order.id }}"
+        hx-swap="none"
+        class="flex items-center gap-1.5 px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 font-medium rounded-xl transition-colors">
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+    </svg>
+    Удалить
+</button>
+{% endblock %}
+
+{% block content %}
+{% set sym = '$' if order.currency == 'USD' else ('€' if order.currency == 'EUR' else '₽') %}
+
+<!-- Inline edit container -->
+<div id="order-inline-edit" class="mb-2"></div>
+
+<!-- Info strip -->
+<div class="flex items-center gap-6 flex-wrap pb-6 border-b border-slate-100">
+    <div>
+        <p class="text-xs text-slate-400 mb-1">Клиент</p>
+        <p class="text-base font-semibold text-slate-900">{{ order.name }}</p>
+        {% if order.title and order.title != order.name %}
+        <p class="text-sm text-slate-400 mt-0.5">{{ order.title }}</p>
+        {% endif %}
+    </div>
+    {% if order.phone %}
+    <div class="w-px h-8 bg-slate-100 hidden sm:block"></div>
+    <div>
+        <p class="text-xs text-slate-400 mb-1">Телефон</p>
+        <p class="text-sm text-slate-700">{{ order.phone }}</p>
+    </div>
+    {% endif %}
+    {% if order.start_date %}
+    <div class="w-px h-8 bg-slate-100 hidden sm:block"></div>
+    <div>
+        <p class="text-xs text-slate-400 mb-1">Период</p>
+        <p class="text-sm text-slate-700">
+            {{ order.start_date.strftime('%d.%m.%Y') }}
+            {% if order.end_date %} — {{ order.end_date.strftime('%d.%m.%Y') }}{% endif %}
+        </p>
+    </div>
+    {% endif %}
+    <div class="w-px h-8 bg-slate-100 hidden sm:block"></div>
+    <div>
+        <p class="text-xs text-slate-400 mb-1">Статус</p>
+        <span class="inline-flex items-center gap-1.5 text-sm font-medium
+                     {{ 'text-emerald-600' if order.is_active else 'text-slate-400' }}">
+            <span class="w-1.5 h-1.5 rounded-full {{ 'bg-emerald-500' if order.is_active else 'bg-slate-300' }}"></span>
+            {{ 'Активен' if order.is_active else 'Архив' }}
+        </span>
+    </div>
+    {% if order.partner %}
+    <div class="w-px h-8 bg-slate-100 hidden sm:block"></div>
+    <div>
+        <p class="text-xs text-slate-400 mb-1">Партнёр</p>
+        <span class="inline-flex items-center gap-1.5 text-sm text-purple-700 font-medium">
+            {{ order.partner.name }}
+            <span class="text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded font-semibold">50/50</span>
+        </span>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Finances strip -->
+<div class="flex items-center gap-8 flex-wrap py-6 border-b border-slate-100">
+    <div>
+        <p class="text-xs text-slate-400 mb-1">Обслуживание</p>
+        <p class="text-base font-semibold text-slate-900">
+            {{ sym }}{{ "%.0f"|format(order.monthly_fee or 0) }}
+            <span class="text-sm font-normal text-slate-400">/мес</span>
+        </p>
+    </div>
+    {% if order.dev_price and order.dev_price > 0 %}
+    <div class="w-px h-8 bg-slate-100"></div>
+    <div>
+        <p class="text-xs text-slate-400 mb-1">Разработка</p>
+        <p class="text-base font-semibold text-slate-900">{{ sym }}{{ "%.0f"|format(order.dev_price) }}</p>
+    </div>
+    {% endif %}
+    {% if order.advance_amount and order.advance_amount > 0 %}
+    <div class="w-px h-8 bg-slate-100"></div>
+    <div>
+        <p class="text-xs text-slate-400 mb-1">Аванс получен</p>
+        <p class="text-base font-semibold text-emerald-600">{{ sym }}{{ "%.0f"|format(order.advance_amount) }}</p>
+    </div>
+    {% if order.dev_price and order.dev_price > 0 %}
+    <div class="w-px h-8 bg-slate-100"></div>
+    <div>
+        <p class="text-xs text-slate-400 mb-1">Остаток</p>
+        <p class="text-base font-semibold text-amber-600">
+            {{ sym }}{{ "%.0f"|format((order.dev_price or 0) - (order.advance_amount or 0)) }}
+        </p>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+
+<!-- Payments -->
+<div class="py-6 border-b border-slate-100" x-data="{ showAddPayment: false }">
+    <div class="flex items-center justify-between mb-4">
+        <p class="text-sm font-semibold text-slate-900">Платежи</p>
+        <button @click="showAddPayment = !showAddPayment"
+                class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Добавить платёж
+        </button>
+    </div>
+
+    <!-- Add payment form -->
+    <div x-show="showAddPayment" x-transition class="mb-4 p-4 bg-slate-50 rounded-xl">
+        <form hx-post="/orders/{{ order.id }}/payments"
+              hx-target="#payments-tbody"
+              hx-swap="afterbegin"
+              hx-on::after-request="if(event.detail.successful){ showAddPayment=false; this.reset(); document.getElementById('payments-empty').style.display='none'; }"
+              class="flex flex-wrap items-end gap-3">
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Месяц</label>
+                <select name="month"
+                        class="bg-white ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 rounded-xl px-3 py-2 text-sm outline-none transition-all">
+                    {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == today.month %}selected{% endif %}>{{ m }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Год</label>
+                <input type="number" name="year" value="{{ today.year }}"
+                       class="w-24 bg-white ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 rounded-xl px-3 py-2 text-sm outline-none transition-all"/>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Сумма</label>
+                <input type="number" name="amount" placeholder="0" required
+                       class="w-32 bg-white ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 rounded-xl px-3 py-2 text-sm outline-none transition-all"/>
+            </div>
+            <div x-data="{ cur: '{{ order.currency or 'RUB' }}' }">
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Валюта</label>
+                <div class="inline-flex bg-slate-200 rounded-xl p-0.5 gap-0.5">
+                    <button type="button" @click="cur='RUB'" :class="cur==='RUB' ? 'bg-white shadow-sm text-slate-900 font-semibold' : 'text-slate-500'" class="px-2.5 py-1.5 text-xs rounded-lg transition-all">₽</button>
+                    <button type="button" @click="cur='USD'" :class="cur==='USD' ? 'bg-white shadow-sm text-slate-900 font-semibold' : 'text-slate-500'" class="px-2.5 py-1.5 text-xs rounded-lg transition-all">$</button>
+                    <button type="button" @click="cur='EUR'" :class="cur==='EUR' ? 'bg-white shadow-sm text-slate-900 font-semibold' : 'text-slate-500'" class="px-2.5 py-1.5 text-xs rounded-lg transition-all">€</button>
+                    <input type="hidden" name="currency" :value="cur">
+                </div>
+            </div>
+            <button type="submit" class="px-4 py-2 text-sm bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors">Сохранить</button>
+            <button type="button" @click="showAddPayment=false" class="px-3 py-2 text-sm text-slate-400 hover:text-slate-700 transition-colors">Отмена</button>
+        </form>
+    </div>
+
+    <!-- Payments table -->
+    {% if payments %}
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-slate-100">
+                    <th class="pb-2 text-left text-xs font-medium text-slate-400">Месяц/Год</th>
+                    <th class="pb-2 text-right text-xs font-medium text-slate-400">Сумма</th>
+                    <th class="pb-2 text-center text-xs font-medium text-slate-400">Статус</th>
+                    <th class="pb-2"></th>
+                </tr>
+            </thead>
+            <tbody id="payments-tbody" class="divide-y divide-slate-50">
+                {% for payment in payments %}
+                <tr id="detail-payment-{{ payment.id }}" class="hover:bg-slate-50 transition-colors">
+                    <td class="py-3 text-sm text-slate-700 font-medium">{{ payment.month }}/{{ payment.year }}</td>
+                    <td class="py-3 text-sm text-right font-semibold text-slate-900">
+                        {% if payment.currency == 'USD' %}${% elif payment.currency == 'EUR' %}€{% else %}₽{% endif %}{{ "%.0f"|format(payment.amount) }}
+                    </td>
+                    <td class="py-3 text-center">
+                        <div id="detail-toggle-{{ payment.id }}">
+                            <button hx-put="/orders/payments/{{ payment.id }}/toggle"
+                                    hx-target="#detail-toggle-{{ payment.id }}"
+                                    hx-swap="outerHTML"
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors
+                                           {{ 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' if payment.is_paid else 'bg-amber-50 text-amber-700 hover:bg-amber-100' }}">
+                                {% if payment.is_paid %}
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                Оплачено
+                                {% else %}
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Ожидает
+                                {% endif %}
+                            </button>
+                        </div>
+                    </td>
+                    <td class="py-3 text-right">
+                        <button onclick="showDel('Удалить платёж {{ payment.month }}/{{ payment.year }}?', () => htmx.ajax('DELETE', '/orders/payments/{{ payment.id }}', {target:'#detail-payment-{{ payment.id }}', swap:'outerHTML swap:200ms'}))"
+                                class="p-1 text-slate-300 hover:text-red-500 transition-colors rounded">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div id="payments-tbody" class="hidden"></div>
+    <p id="payments-empty" class="text-sm text-slate-400">Платежей пока нет</p>
+    {% endif %}
+</div>
+
+<!-- Documents -->
+<div class="pt-6">
+    <div class="flex items-center justify-between mb-4">
+        <p class="text-sm font-semibold text-slate-900">Документы</p>
+        <form hx-post="/documents/upload"
+              hx-target="#documents-list"
+              hx-swap="afterbegin"
+              hx-encoding="multipart/form-data"
+              hx-on::after-request="if(event.detail.successful){ this.reset(); }"
+              id="doc-upload-form-{{ order.id }}">
+            <input type="hidden" name="client_id" value="{{ order.id }}">
+            <input type="hidden" name="doc_type" value="other">
+            <label class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg cursor-pointer transition-colors">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                Загрузить
+                <input type="file" name="file" multiple class="sr-only"
+                       onchange="if(this.files.length){ document.getElementById('doc-submit-{{ order.id }}').click(); }">
+            </label>
+            <button id="doc-submit-{{ order.id }}" type="submit" class="sr-only"></button>
+        </form>
+    </div>
+
+    <div id="documents-list">
+        {% if documents %}
+            {% for doc in documents %}
+            {% set type_labels = {'contract': 'Договор', 'invoice': 'Счёт', 'act': 'Акт', 'other': 'Файл'} %}
+            <div id="doc-{{ doc.id }}" class="group flex items-center gap-4 py-2.5 border-b border-slate-50 last:border-0">
+                <div class="w-7 h-7 bg-slate-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <svg class="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-slate-900 truncate">{{ doc.title }}</p>
+                    <p class="text-xs text-slate-400">{{ type_labels.get(doc.doc_type, 'Файл') }} · {{ doc.created_at.strftime('%d.%m.%Y') }}</p>
+                </div>
+                <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <a href="/documents/{{ doc.id }}/download"
+                       class="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors rounded-lg">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                    </a>
+                    <button hx-delete="/documents/{{ doc.id }}"
+                            hx-target="#doc-{{ doc.id }}"
+                            hx-swap="outerHTML"
+                            class="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded-lg">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <p class="text-sm text-slate-400">Документов пока нет</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

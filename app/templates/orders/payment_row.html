@@ -1,0 +1,12 @@
+<tr class="border-b border-slate-50 last:border-0">
+    <td class="py-3 text-sm text-slate-700">{{ payment.month }}/{{ payment.year }}</td>
+    <td class="py-3 text-sm font-medium text-slate-900">
+        {% if payment.currency == 'USD' %}${% elif payment.currency == 'EUR' %}€{% else %}₽{% endif %}
+        {{ "%.0f"|format(payment.amount) }}
+    </td>
+    <td class="py-3">
+        <span class="px-2 py-0.5 text-xs rounded-full {{ 'bg-emerald-50 text-emerald-700' if payment.is_paid else 'bg-amber-50 text-amber-700' }}">
+            {{ 'Оплачено' if payment.is_paid else 'Ожидает' }}
+        </span>
+    </td>
+</tr>

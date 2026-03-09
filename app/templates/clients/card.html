@@ -1,0 +1,105 @@
+<div id="client-{{ client.id }}"
+     class="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-all duration-200 {% if not client.is_active %}opacity-60{% endif %}">
+    <div class="flex items-start justify-between mb-3">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 {% if client.is_active %}bg-blue-100 text-blue-600{% else %}bg-slate-100 text-slate-400{% endif %} rounded-full flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                {{ client.name[0].upper() }}
+            </div>
+            <div>
+                <h3 class="text-sm font-semibold text-slate-900">{{ client.name }}</h3>
+                {% if client.company %}
+                <p class="text-xs text-slate-400">{{ client.company }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="flex items-center gap-1">
+            <a href="/clients/{{ client.id }}"
+               class="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors rounded"
+               title="Открыть">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+            </a>
+            <button
+                hx-get="/clients/{{ client.id }}/edit"
+                hx-target="#client-edit-{{ client.id }}"
+                hx-swap="innerHTML"
+                class="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors rounded"
+                title="Редактировать">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+            </button>
+            <button
+                hx-delete="/clients/{{ client.id }}"
+                hx-target="#client-{{ client.id }}"
+                hx-swap="outerHTML"
+                hx-confirm="Удалить клиента «{{ client.name }}»? Это удалит все его платежи."
+                class="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded"
+                title="Удалить">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Contact info -->
+    <div class="space-y-1 mb-3">
+        {% if client.phone %}
+        <p class="text-xs text-slate-500">📞 {{ client.phone }}</p>
+        {% endif %}
+        {% if client.email %}
+        <p class="text-xs text-slate-500">✉️ {{ client.email }}</p>
+        {% endif %}
+    </div>
+
+    <!-- Footer -->
+    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+        <div>
+            <p class="text-base font-bold text-slate-900">
+                {% if client.currency == 'USD' %}${% elif client.currency == 'EUR' %}€{% else %}₽{% endif %}
+                {{ "%.0f"|format(client.monthly_fee or 0) }}
+                <span class="text-xs font-normal text-slate-400">/ мес</span>
+            </p>
+            {% if client.partner %}
+            <p class="text-xs text-purple-500 mt-0.5">⟡ {{ client.partner.name }}</p>
+            {% endif %}
+        </div>
+
+        <!-- Payment status toggle -->
+        <div id="payment-toggle-{{ client.id }}">
+            {% if current_payment %}
+                <button
+                    hx-put="/clients/payments/{{ current_payment.id }}/toggle"
+                    hx-target="#payment-toggle-{{ client.id }}"
+                    hx-swap="outerHTML"
+                    class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors
+                           {% if current_payment.is_paid %}bg-green-100 text-green-700 hover:bg-green-200{% else %}bg-amber-100 text-amber-700 hover:bg-amber-200{% endif %}">
+                    {% if current_payment.is_paid %}
+                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Оплачено
+                    {% else %}
+                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Ожидает
+                    {% endif %}
+                </button>
+            {% else %}
+                <span class="px-2.5 py-1 rounded-full text-xs bg-slate-100 text-slate-400">
+                    Нет записи
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Edit form container -->
+    <div id="client-edit-{{ client.id }}"></div>
+</div>

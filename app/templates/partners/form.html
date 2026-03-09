@@ -1,0 +1,66 @@
+{% if partner is defined and partner and partner.id %}
+<!-- Inline edit form -->
+<div class="border-t border-slate-100 p-5">
+    <form hx-put="/partners/{{ partner.id }}"
+          hx-target="#partner-{{ partner.id }}"
+          hx-swap="outerHTML"
+          class="space-y-3">
+        <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Имя *</label>
+            <input type="text" name="name" value="{{ partner.name }}" required
+                   class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3 py-2 text-sm outline-none transition-all"/>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Телефон</label>
+                <input type="text" name="phone" value="{{ partner.phone or '' }}"
+                       class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3 py-2 text-sm outline-none transition-all"/>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Telegram</label>
+                <input type="text" name="telegram" value="{{ partner.telegram or '' }}" placeholder="@username"
+                       class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3 py-2 text-sm outline-none transition-all"/>
+            </div>
+        </div>
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" name="is_active" value="on" {{ 'checked' if partner.is_active }} class="sr-only peer">
+            <div class="w-8 h-4 bg-slate-200 peer-checked:bg-emerald-500 rounded-full relative transition-colors
+                        after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-3 after:h-3 after:bg-white after:rounded-full after:transition-all
+                        peer-checked:after:translate-x-4"></div>
+            <span class="text-xs text-slate-500">Активен</span>
+        </label>
+        <div class="flex justify-end gap-2 pt-1">
+            <button type="button"
+                    onclick="document.getElementById('partner-edit-{{ partner.id }}').innerHTML=''"
+                    class="px-3 py-2 text-xs text-slate-500 hover:text-slate-800 transition-colors">
+                Отмена
+            </button>
+            <button type="submit"
+                    class="px-4 py-2 text-xs bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors">
+                Сохранить
+            </button>
+        </div>
+    </form>
+</div>
+{% else %}
+<!-- New partner fields (in modal) -->
+<div class="space-y-4">
+    <div>
+        <label class="block text-xs font-medium text-slate-500 mb-1.5">Имя *</label>
+        <input type="text" name="name" required placeholder="Иван Иванов"
+               class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all"/>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1.5">Телефон</label>
+            <input type="text" name="phone" placeholder="+7 900 000 00 00"
+                   class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all"/>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1.5">Telegram</label>
+            <input type="text" name="telegram" placeholder="@username"
+                   class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all"/>
+        </div>
+    </div>
+</div>
+{% endif %}

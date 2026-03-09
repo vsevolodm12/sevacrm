@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Статистика — SevaCRM{% endblock %}
+{% block page_title %}Статистика{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<div x-data="{
+    showPartner: false,
+    togglePartner() {
+        this.showPartner = !this.showPartner;
+        if (window.incomeChart) {
+            window.incomeChart.data.datasets[1].hidden = !this.showPartner;
+            window.incomeChart.update('active');
+        }
+    }
+}">
+
+    <!-- All-time totals card -->
+    <div class="bg-white rounded-2xl border border-slate-100 p-7 mb-6">
+        <div class="flex items-start justify-between flex-wrap gap-4">
+            <div>
+                <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Мой доход за всё время</p>
+                <p class="text-4xl font-bold text-slate-900">₽ {{ "%.0f"|format(all_time.my_total) }}</p>
+                <p class="text-sm text-slate-400 mt-1.5">Включая аванс и обслуживание</p>
+            </div>
+            <div class="flex flex-col items-end gap-3">
+                <button @click="togglePartner()"
+                        class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl border transition-colors"
+                        :class="showPartner ? 'bg-purple-50 border-purple-200 text-purple-700' : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <span x-text="showPartner ? 'Скрыть партнёров' : 'Показать долю партнёров'"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Partner section (hidden by default) -->
+        <div x-show="showPartner" x-transition class="mt-5 pt-5 border-t border-slate-100">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-purple-50 rounded-xl p-4">
+                    <p class="text-xs font-medium text-purple-500 mb-1">Доля партнёров</p>
+                    <p class="text-2xl font-bold text-purple-700">₽ {{ "%.0f"|format(all_time.partner_total) }}</p>
+                </div>
+                <div class="bg-slate-50 rounded-xl p-4">
+                    <p class="text-xs font-medium text-slate-400 mb-1">Общий оборот (мой + партнёр)</p>
+                    <p class="text-2xl font-bold text-slate-700">₽ {{ "%.0f"|format(all_time.grand_total) }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="bg-white rounded-2xl border border-slate-100 p-6 mb-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-sm font-semibold text-slate-900">Доход по месяцам</h3>
+                <p class="text-xs text-slate-400 mt-0.5">мой доход<span x-show="showPartner"> + доля партнёров</span></p>
+            </div>
+        </div>
+        <div class="h-64">
+            <canvas id="incomeChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Monthly table -->
+    <div class="bg-white rounded-2xl border border-slate-100">
+        <div class="px-6 py-4 border-b border-slate-100">
+            <h3 class="text-sm font-semibold text-slate-900">Детализация по месяцам</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-slate-100">
+                        <th class="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Месяц</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Мой доход</th>
+                        <th x-show="showPartner" class="px-6 py-3 text-right text-xs font-medium text-purple-400 uppercase tracking-wider">Доля партнёров</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">Итого</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                    {% for row in monthly_history | reverse %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-3 text-sm font-medium text-slate-900">
+                            {{ row.label }}
+                        </td>
+                        <td class="px-6 py-3 text-sm text-right {{ 'text-slate-300' if row.my_income == 0 else 'text-slate-800 font-medium' }}">
+                            ₽ {{ "%.0f"|format(row.my_income) }}
+                        </td>
+                        <td x-show="showPartner" class="px-6 py-3 text-sm text-right {{ 'text-slate-300' if row.partner_income == 0 else 'text-purple-600' }}">
+                            ₽ {{ "%.0f"|format(row.partner_income) }}
+                        </td>
+                        <td class="px-6 py-3 text-sm text-right font-semibold {{ 'text-slate-300' if row.total_income == 0 else 'text-slate-900' }}">
+                            ₽ {{ "%.0f"|format(row.total_income) }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="border-t-2 border-slate-200 bg-slate-50">
+                        <td class="px-6 py-3 text-sm font-bold text-slate-900">Итого</td>
+                        <td class="px-6 py-3 text-sm text-right font-bold text-slate-900">
+                            ₽ {{ "%.0f"|format(all_time.my_total) }}
+                        </td>
+                        <td x-show="showPartner" class="px-6 py-3 text-sm text-right font-bold text-purple-700">
+                            ₽ {{ "%.0f"|format(all_time.partner_total) }}
+                        </td>
+                        <td class="px-6 py-3 text-sm text-right font-bold text-slate-900">
+                            ₽ {{ "%.0f"|format(all_time.grand_total) }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+const labels = {{ monthly_history | map(attribute='label') | list | tojson }};
+const myData = {{ monthly_history | map(attribute='my_income') | list | tojson }};
+const partnerData = {{ monthly_history | map(attribute='partner_income') | list | tojson }};
+
+const canvas = document.getElementById('incomeChart');
+const ctx = canvas.getContext('2d');
+
+// Gradient fill
+function makeGradient(ctx, color1, color2) {
+    const h = canvas.parentElement.clientHeight || 256;
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, color1);
+    g.addColorStop(1, color2);
+    return g;
+}
+
+window.incomeChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Мой доход',
+                data: myData,
+                backgroundColor: function(context) {
+                    const chart = context.chart;
+                    const {ctx: c, chartArea} = chart;
+                    if (!chartArea) return 'rgba(99,102,241,0.8)';
+                    const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                    g.addColorStop(0, 'rgba(99,102,241,0.9)');
+                    g.addColorStop(1, 'rgba(129,140,248,0.4)');
+                    return g;
+                },
+                borderColor: 'rgba(99,102,241,0)',
+                borderWidth: 0,
+                borderRadius: { topLeft: 6, topRight: 6 },
+                borderSkipped: false,
+            },
+            {
+                label: 'Доля партнёров',
+                data: partnerData,
+                backgroundColor: 'rgba(168,85,247,0.5)',
+                borderColor: 'rgba(168,85,247,0)',
+                borderWidth: 0,
+                borderRadius: { topLeft: 0, topRight: 0 },
+                borderSkipped: 'bottom',
+                hidden: true,
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(15,23,42,0.9)',
+                titleColor: '#94a3b8',
+                bodyColor: '#f1f5f9',
+                padding: 12,
+                cornerRadius: 10,
+                titleFont: { size: 11 },
+                bodyFont: { size: 12, weight: '600' },
+                callbacks: {
+                    label: function(context) {
+                        if (context.dataset.hidden) return null;
+                        const val = Math.round(context.raw).toLocaleString('ru-RU');
+                        return ' ' + context.dataset.label + ': ₽\u00a0' + val;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                stacked: true,
+                grid: { display: false },
+                border: { display: false },
+                ticks: { font: { size: 11 }, color: '#94a3b8', maxRotation: 0 }
+            },
+            y: {
+                stacked: true,
+                grid: { color: 'rgba(241,245,249,0.8)', drawBorder: false },
+                border: { display: false, dash: [4, 4] },
+                ticks: {
+                    font: { size: 11 },
+                    color: '#94a3b8',
+                    callback: function(value) {
+                        if (value === 0) return '0';
+                        if (value >= 1000000) return '₽\u00a0' + (value/1000000).toFixed(1) + 'M';
+                        if (value >= 1000) return '₽\u00a0' + (value/1000).toFixed(0) + 'K';
+                        return '₽\u00a0' + value;
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
