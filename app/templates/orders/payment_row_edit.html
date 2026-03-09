@@ -1,0 +1,30 @@
+<tr id="detail-payment-{{ payment.id }}" x-data="{ cur: '{{ payment.currency }}' }">
+    <td colspan="4" class="py-2">
+        <form hx-put="/orders/payments/{{ payment.id }}"
+              hx-target="#detail-payment-{{ payment.id }}"
+              hx-swap="outerHTML"
+              class="flex flex-wrap items-center gap-2">
+            <input type="text" name="payment_date"
+                   value="{{ '%02d.%02d.%d' % (payment.payment_day or 1, payment.month, payment.year) }}"
+                   placeholder="ДД.ММ.ГГГГ" maxlength="10"
+                   @input="if($event.inputType && $event.inputType.includes('delete')) return; const el=$event.target; let v=el.value.replace(/\D/g,'').slice(0,8); if(v.length>=5) v=v.slice(0,2)+'.'+v.slice(2,4)+'.'+v.slice(4); else if(v.length>=3) v=v.slice(0,2)+'.'+v.slice(2); el.value=v;"
+                   class="w-28 rounded-xl bg-slate-50 px-2.5 py-1.5 text-sm outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900"/>
+            <input type="number" name="amount" value="{{ payment.amount }}" required
+                   class="w-28 rounded-xl bg-slate-50 px-2.5 py-1.5 text-sm outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900"/>
+            <div class="inline-flex rounded-xl bg-slate-200 p-0.5">
+                <button type="button" @click="cur='RUB'" :class="cur==='RUB' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'" class="rounded-lg px-2 py-1 text-xs font-semibold transition-all">₽</button>
+                <button type="button" @click="cur='USD'" :class="cur==='USD' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'" class="rounded-lg px-2 py-1 text-xs font-semibold transition-all">$</button>
+                <button type="button" @click="cur='EUR'" :class="cur==='EUR' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'" class="rounded-lg px-2 py-1 text-xs font-semibold transition-all">€</button>
+                <input type="hidden" name="currency" :value="cur">
+            </div>
+            <input type="text" name="notes" value="{{ payment.notes or '' }}" placeholder="Примечание"
+                   class="flex-1 min-w-32 rounded-xl bg-slate-50 px-2.5 py-1.5 text-sm outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900"/>
+            <button type="submit" class="rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 transition-colors">Сохранить</button>
+            <button type="button"
+                    hx-get="/orders/payments/{{ payment.id }}/view"
+                    hx-target="#detail-payment-{{ payment.id }}"
+                    hx-swap="outerHTML"
+                    class="px-2 py-1.5 text-xs text-slate-400 hover:text-slate-700 transition-colors">Отмена</button>
+        </form>
+    </td>
+</tr>

@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* HTMX loading indicator */
+.htmx-indicator { opacity: 0; transition: opacity 150ms; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
+
+/* Font smoothing */
+* { -webkit-font-smoothing: antialiased; }
+
+/* Remove focus outline from buttons */
+button:focus { outline: none; }
+button:focus-visible { outline: none; }
+
+/* Hide number input spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number] { -moz-appearance: textfield; }
+
+/* Sidebar background pseudo-element */
+html::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    width: 288px;
+    background: #0d1117;
+    z-index: 0;
+}
+
+/* Disable submit during HTMX request */
+form.htmx-request [type="submit"] {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+@media (max-width: 1024px) {
+    html::before { display: none; }
+    #sidebar {
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+    #page-content {
+        margin-left: 0 !important;
+        min-height: auto !important;
+    }
+}
