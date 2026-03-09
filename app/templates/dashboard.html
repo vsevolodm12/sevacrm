@@ -4,12 +4,5 @@
 {% block page_title %}Дашборд{% endblock %}
 
 {% block content %}
-<div id="dashboard-content"
-     hx-get="/dashboard/stats?month={{ month }}&year={{ year }}"
-     hx-trigger="monthChanged from:body"
-     hx-target="#dashboard-content"
-     hx-swap="outerHTML">
-
-    {% include "partials/dashboard_content.html" %}
-</div>
+{% include "partials/dashboard_content.html" %}
 {% endblock %}

@@ -2,15 +2,15 @@ from datetime import datetime, date
 
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.templates_config import templates
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
+from app.htmx import set_htmx_toast
 from app.models.models import Client, Partner, Payment, User
 
 router = APIRouter(prefix="/clients")
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("", response_class=HTMLResponse)
@@ -89,8 +89,7 @@ async def create_client(
             "today": today,
         },
     )
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Клиент добавлен", "type": "success"}}'
-    return response
+    return set_htmx_toast(response, "Клиент добавлен")
 
 
 @router.get("/{client_id}", response_class=HTMLResponse)
@@ -195,13 +194,13 @@ async def update_client(
             "today": today,
         },
     )
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Клиент обновлён", "type": "success"}}'
-    return response
+    return set_htmx_toast(response, "Клиент обновлён")
 
 
 @router.delete("/{client_id}")
 async def delete_client(
     client_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -210,8 +209,10 @@ async def delete_client(
         db.delete(client)
         db.commit()
     response = Response(content="", status_code=200)
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Клиент удалён", "type": "success"}}'
-    return response
+    current_url = request.headers.get("HX-Current-URL", "")
+    if f"/clients/{client_id}" in current_url:
+        response.headers["HX-Location"] = '{"path":"/clients","target":"#page-content","select":"#page-content","swap":"outerHTML"}'
+    return set_htmx_toast(response, "Клиент удалён")
 
 
 @router.post("/{client_id}/payments", response_class=HTMLResponse)
@@ -264,8 +265,7 @@ async def create_payment(
         "clients/payment_row.html",
         {"request": request, "payment": payment},
     )
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Платёж сохранён", "type": "success"}}'
-    return response
+    return set_htmx_toast(response, "Платёж сохранён")
 
 
 @router.put("/payments/{payment_id}/toggle", response_class=HTMLResponse)

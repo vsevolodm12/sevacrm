@@ -1,5 +1,5 @@
-<div id="partner-{{ partner.id }}"
-     class="bg-white rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all duration-200">
+<div id="partner-{{ partner.id }}" data-partner-item
+     class="bg-white rounded-2xl hover:shadow-sm transition-all duration-200">
 
     <div class="p-5">
         <div class="flex items-start justify-between mb-4">
@@ -24,7 +24,8 @@
                               d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                     </svg>
                 </button>
-                <button onclick="showDel('Удалить партнёра «{{ partner.name }}»?', () => htmx.ajax('DELETE', '/partners/{{ partner.id }}', {target:'#partner-{{ partner.id }}', swap:'outerHTML swap:200ms'}))"
+                <button type="button"
+                        onclick="showDel('Удалить партнёра «{{ partner.name }}»?', () => htmx.ajax('DELETE', '/partners/{{ partner.id }}', {target:'#partner-{{ partner.id }}', swap:'delete'}))"
                         class="p-1.5 text-slate-300 hover:text-red-500 transition-colors rounded-lg">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -34,7 +35,6 @@
             </div>
         </div>
 
-        <!-- Contacts -->
         <div class="space-y-1.5">
             {% if partner.phone %}
             <p class="text-xs text-slate-400">{{ partner.phone }}</p>
@@ -45,7 +45,6 @@
         </div>
     </div>
 
-    <!-- Stats footer -->
     <div class="px-5 py-3 border-t border-slate-50 flex gap-5">
         <div>
             <p class="text-base font-semibold text-slate-900">{{ clients_count }}</p>
@@ -57,6 +56,5 @@
         </div>
     </div>
 
-    <!-- Edit slot -->
     <div id="partner-edit-{{ partner.id }}"></div>
 </div>

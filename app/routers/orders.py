@@ -6,12 +6,13 @@ from typing import List, Optional
 import aiofiles
 from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.templates_config import templates
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.config import settings
 from app.database import get_db
+from app.htmx import set_htmx_toast
 from app.models.models import Client, Document, Partner, Payment, User
 
 ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".png", ".jpg", ".jpeg"}
@@ -61,7 +62,6 @@ async def _save_document(db, file: UploadFile, title: str, doc_type: str, client
     db.commit()
 
 router = APIRouter(prefix="/orders")
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("", response_class=HTMLResponse)
@@ -90,12 +90,22 @@ async def orders_index(
             "current_payment": payment,
         })
 
+    # Maintenance totals per currency (only active orders)
+    from collections import defaultdict
+    maintenance_by_currency = defaultdict(float)
+    for item in orders_with_payment:
+        o = item["order"]
+        if o.is_active:
+            cur = o.currency or "RUB"
+            maintenance_by_currency[cur] += float(o.monthly_fee or 0)
+
     return templates.TemplateResponse(
         "orders/index.html",
         {
             "request": request,
             "current_user": current_user,
             "orders_with_payment": orders_with_payment,
+            "maintenance_by_currency": dict(maintenance_by_currency),
             "partners": partners,
             "today": today,
         },
@@ -113,9 +123,11 @@ async def edit_order_form(
     if not order:
         return HTMLResponse("Заказ не найден", status_code=404)
     partners = db.query(Partner).filter(Partner.is_active == True).all()
+    current_url = (request.headers.get("HX-Current-URL") or "").rstrip("/")
+    detail_mode = current_url.endswith(f"/orders/{order_id}")
     return templates.TemplateResponse(
         "orders/form.html",
-        {"request": request, "order": order, "partners": partners},
+        {"request": request, "order": order, "partners": partners, "detail_mode": detail_mode},
     )
 
 
@@ -131,18 +143,23 @@ async def order_detail(
     if not order:
         return HTMLResponse("Заказ не найден", status_code=404)
     partners = db.query(Partner).filter(Partner.is_active == True).all()
-    payments = (
+    all_payments = (
         db.query(Payment)
         .filter(Payment.client_id == order_id)
-        .order_by(Payment.year.desc(), Payment.month.desc())
+        .order_by(Payment.year.desc(), Payment.month.desc(), Payment.id.desc())
         .all()
     )
-    documents = (
+    payments = [p for p in all_payments if p.payment_type != "maintenance"]
+    maintenance_payments = [p for p in all_payments if p.payment_type == "maintenance"]
+    all_docs = (
         db.query(Document)
         .filter(Document.client_id == order_id)
         .order_by(Document.created_at.desc())
         .all()
     )
+    documents = [d for d in all_docs if d.doc_type not in ("act", "invoice")]
+    maintenance_acts = [d for d in all_docs if d.doc_type == "act"]
+    maintenance_invoices = [d for d in all_docs if d.doc_type == "invoice"]
     today = date.today()
     return templates.TemplateResponse(
         "orders/detail.html",
@@ -152,7 +169,10 @@ async def order_detail(
             "order": order,
             "partners": partners,
             "payments": payments,
+            "maintenance_payments": maintenance_payments,
             "documents": documents,
+            "maintenance_acts": maintenance_acts,
+            "maintenance_invoices": maintenance_invoices,
             "today": today,
         }
     )
@@ -206,8 +226,7 @@ async def create_order(
             "today": today,
         },
     )
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Заказ добавлен", "type": "success"}}'
-    return response
+    return set_htmx_toast(response, "Заказ добавлен")
 
 
 @router.put("/{order_id}", response_class=HTMLResponse)
@@ -223,6 +242,7 @@ async def update_order(
     currency: str = Form("RUB"),
     partner_id: str = Form(""),
     is_active: str = Form(""),
+    is_completed: str = Form(""),
     start_date: str = Form(""),
     end_date: str = Form(""),
     db: Session = Depends(get_db),
@@ -241,11 +261,20 @@ async def update_order(
     order.currency = currency
     order.partner_id = int(partner_id) if partner_id else None
     order.is_active = is_active == "on"
+    new_completed = is_completed == "on"
+    if new_completed and not order.is_completed:
+        order.completed_at = datetime.utcnow()
+    elif not new_completed:
+        order.completed_at = None
+    order.is_completed = new_completed
     order.start_date = _parse_date(start_date)
     order.end_date = _parse_date(end_date)
     db.commit()
     db.refresh(order)
 
+    current_url = (request.headers.get("HX-Current-URL") or "").rstrip("/")
+    detail_mode = current_url.endswith(f"/orders/{order_id}")
+    partners = db.query(Partner).filter(Partner.is_active == True).all()
     today = date.today()
     current_payment = (
         db.query(Payment)
@@ -257,17 +286,102 @@ async def update_order(
         .first()
     )
 
+    if detail_mode:
+        all_payments = (
+            db.query(Payment)
+            .filter(Payment.client_id == order_id)
+            .order_by(Payment.year.desc(), Payment.month.desc(), Payment.id.desc())
+            .all()
+        )
+        payments = [p for p in all_payments if p.payment_type != "maintenance"]
+        maintenance_payments = [p for p in all_payments if p.payment_type == "maintenance"]
+        all_docs = (
+            db.query(Document)
+            .filter(Document.client_id == order_id)
+            .order_by(Document.created_at.desc())
+            .all()
+        )
+        documents = [d for d in all_docs if d.doc_type not in ("act", "invoice")]
+        maintenance_acts = [d for d in all_docs if d.doc_type == "act"]
+        maintenance_invoices = [d for d in all_docs if d.doc_type == "invoice"]
+        response = templates.TemplateResponse(
+            "orders/detail.html",
+            {
+                "request": request,
+                "current_user": current_user,
+                "order": order,
+                "partners": partners,
+                "payments": payments,
+                "maintenance_payments": maintenance_payments,
+                "documents": documents,
+                "maintenance_acts": maintenance_acts,
+                "maintenance_invoices": maintenance_invoices,
+                "today": today,
+            },
+        )
+    else:
+        response = templates.TemplateResponse(
+            "orders/card.html",
+            {
+                "request": request,
+                "order": order,
+                "current_payment": current_payment,
+                "today": today,
+            },
+        )
+    return set_htmx_toast(response, "Заказ обновлён")
+
+
+@router.put("/{order_id}/status", response_class=HTMLResponse)
+async def update_order_status(
+    order_id: int,
+    request: Request,
+    status: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    order = db.query(Client).filter(Client.id == order_id).first()
+    if not order:
+        return HTMLResponse("Заказ не найден", status_code=404)
+    if status == "active":
+        order.is_active = True
+        order.is_completed = False
+        order.completed_at = None
+    elif status == "completed":
+        order.is_completed = True
+        if not order.completed_at:
+            order.completed_at = datetime.utcnow()
+    elif status == "inactive":
+        order.is_active = False
+        order.is_completed = False
+        order.completed_at = None
+    db.commit()
+    db.refresh(order)
     response = templates.TemplateResponse(
-        "orders/card.html",
-        {
-            "request": request,
-            "order": order,
-            "current_payment": current_payment,
-            "today": today,
-        },
+        "orders/status_badge.html",
+        {"request": request, "order": order},
     )
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Заказ обновлён", "type": "success"}}'
-    return response
+    return set_htmx_toast(response, "Статус обновлён")
+
+
+@router.put("/{order_id}/toggle-maintenance", response_class=HTMLResponse)
+async def toggle_maintenance(
+    order_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    order = db.query(Client).filter(Client.id == order_id).first()
+    if not order:
+        return HTMLResponse("Заказ не найден", status_code=404)
+    order.is_active = not order.is_active
+    db.commit()
+    db.refresh(order)
+    response = templates.TemplateResponse(
+        "orders/maintenance_status.html",
+        {"request": request, "order": order},
+    )
+    return set_htmx_toast(response, "Обслуживание обновлено")
 
 
 @router.delete("/{order_id}")
@@ -282,62 +396,121 @@ async def delete_order(
         db.delete(order)
         db.commit()
     response = Response(content="", status_code=200)
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Заказ удалён", "type": "success"}}'
     # If deleted from detail page, tell HTMX to navigate back to list
     current_url = request.headers.get("HX-Current-URL", "")
     if f"/orders/{order_id}" in current_url:
         response.headers["HX-Location"] = '{"path":"/orders","target":"#page-content","select":"#page-content","swap":"outerHTML"}'
-    return response
+    return set_htmx_toast(response, "Заказ удалён")
 
 
 @router.post("/{order_id}/payments", response_class=HTMLResponse)
 async def create_payment(
     order_id: int,
     request: Request,
-    month: int = Form(...),
-    year: int = Form(...),
+    payment_date: str = Form(""),
     amount: float = Form(...),
     currency: str = Form("RUB"),
+    notes: str = Form(""),
+    payment_type: str = Form("order"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     order = db.query(Client).filter(Client.id == order_id).first()
     if not order:
         return HTMLResponse("Заказ не найден", status_code=404)
-
-    existing = (
-        db.query(Payment)
-        .filter(
-            Payment.client_id == order_id,
-            Payment.month == month,
-            Payment.year == year,
-        )
-        .first()
-    )
-    if existing:
-        existing.amount = amount
-        existing.currency = currency
-        db.commit()
-        db.refresh(existing)
-        payment = existing
+    parsed = _parse_date(payment_date)
+    if parsed:
+        month, year, day = parsed.month, parsed.year, parsed.day
     else:
-        payment = Payment(
-            client_id=order_id,
-            month=month,
-            year=year,
-            amount=amount,
-            currency=currency,
-        )
-        db.add(payment)
-        db.commit()
-        db.refresh(payment)
+        from datetime import date as _date
+        today = _date.today()
+        month, year, day = today.month, today.year, today.day
+
+    payment = Payment(
+        client_id=order_id,
+        month=month,
+        year=year,
+        payment_day=day,
+        payment_type=payment_type if payment_type in ("order", "maintenance") else "order",
+        amount=amount,
+        currency=currency,
+        notes=notes or None,
+    )
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+
+    tbody_id = "maintenance-payments-tbody" if payment.payment_type == "maintenance" else "payments-tbody"
+    response = templates.TemplateResponse(
+        "orders/payment_row.html",
+        {"request": request, "payment": payment, "tbody_id": tbody_id},
+    )
+    return set_htmx_toast(response, "Платёж сохранён")
+
+
+@router.get("/payments/{payment_id}/edit", response_class=HTMLResponse)
+async def edit_payment_form(
+    payment_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        return HTMLResponse("Платёж не найден", status_code=404)
+    return templates.TemplateResponse(
+        "orders/payment_row_edit.html",
+        {"request": request, "payment": payment},
+    )
+
+
+@router.get("/payments/{payment_id}/view", response_class=HTMLResponse)
+async def view_payment_row(
+    payment_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        return HTMLResponse("Платёж не найден", status_code=404)
+    return templates.TemplateResponse(
+        "orders/payment_row.html",
+        {"request": request, "payment": payment},
+    )
+
+
+@router.put("/payments/{payment_id}", response_class=HTMLResponse)
+async def update_payment(
+    payment_id: int,
+    request: Request,
+    payment_date: str = Form(""),
+    amount: float = Form(...),
+    currency: str = Form("RUB"),
+    notes: str = Form(""),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        return HTMLResponse("Платёж не найден", status_code=404)
+
+    parsed = _parse_date(payment_date)
+    if parsed:
+        payment.month = parsed.month
+        payment.year = parsed.year
+        payment.payment_day = parsed.day
+    payment.amount = amount
+    payment.currency = currency
+    payment.notes = notes or None
+    db.commit()
+    db.refresh(payment)
 
     response = templates.TemplateResponse(
         "orders/payment_row.html",
         {"request": request, "payment": payment},
     )
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Платёж сохранён", "type": "success"}}'
-    return response
+    return set_htmx_toast(response, "Платёж обновлён")
 
 
 @router.put("/payments/{payment_id}/toggle", response_class=HTMLResponse)
@@ -357,8 +530,11 @@ async def toggle_payment(
     db.refresh(payment)
 
     today = date.today()
+    current_url = (request.headers.get("HX-Current-URL") or "").rstrip("/")
+    detail_mode = f"/orders/{payment.client_id}" in current_url
+    template_name = "orders/payment_toggle.html" if not detail_mode else "orders/payment_detail_toggle.html"
     response = templates.TemplateResponse(
-        "orders/payment_toggle.html",
+        template_name,
         {"request": request, "payment": payment, "today": today},
     )
     return response
@@ -375,5 +551,4 @@ async def delete_payment(
         db.delete(payment)
         db.commit()
     response = Response(content="", status_code=200)
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Платёж удалён", "type": "success"}}'
-    return response
+    return set_htmx_toast(response, "Платёж удалён")

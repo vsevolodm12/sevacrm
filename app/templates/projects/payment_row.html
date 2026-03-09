@@ -13,8 +13,7 @@
     </div>
     <div class="flex items-center gap-3">
         <span class="text-sm font-semibold text-slate-900">
-            {% if payment.currency == 'USD' %}${% elif payment.currency == 'EUR' %}€{% else %}₽{% endif %}
-            {{ "%.0f"|format(payment.amount) }}
+            {{ payment.amount|money }} {% if payment.currency == 'USD' %}${% elif payment.currency == 'EUR' %}€{% else %}₽{% endif %}
         </span>
         <button
             hx-put="/projects/payments/{{ payment.id }}/toggle"

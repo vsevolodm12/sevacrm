@@ -4,50 +4,17 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>{% block title %}SevaCRM{% endblock %}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['-apple-system','BlinkMacSystemFont','Inter','Segoe UI','sans-serif'] },
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="/static/tailwind.css">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-    <style>
-        .htmx-indicator { opacity: 0; transition: opacity 150ms; }
-        .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
-        * { -webkit-font-smoothing: antialiased; }
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        input[type=number] { -moz-appearance: textfield; }
-        @keyframes pagein { from { opacity:0; } to { opacity:1; } }
-        #page-content { animation: pagein 120ms ease; }
-        /* Prevent sidebar flash during navigation */
-        html::before {
-            content: '';
-            position: fixed;
-            top: 0; left: 0; bottom: 0;
-            width: 288px;
-            background: #0d1117;
-            z-index: 0;
-        }
-        /* Disable submit button during htmx request */
-        form.htmx-request [type="submit"] {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
-<body class="h-full bg-slate-50 font-sans">
+<body class="h-full bg-slate-100 font-sans text-slate-900">
 
-<!-- Sidebar -->
 <div id="sidebar"
      class="fixed inset-y-0 left-0 w-72 bg-[#0d1117] flex flex-col z-30 border-r border-white/5"
      style="position:fixed;top:0;bottom:0;left:0;width:288px;background:#0d1117;display:flex;flex-direction:column;z-index:30;border-right:1px solid rgba(255,255,255,0.05)">
-    <div class="flex items-center h-16 px-5">
+    <div class="flex items-center px-5 py-5">
         <span class="text-white text-2xl font-bold tracking-tight">Seva<span class="text-indigo-400">CRM</span></span>
     </div>
 
@@ -67,9 +34,9 @@
                hx-select="#page-content"
                hx-swap="outerHTML"
                hx-push-url="true"
-               class="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-base font-medium transition-all duration-100
+               class="group flex items-center gap-3.5 rounded-xl px-3.5 py-3 text-[15px] font-semibold transition-colors
                       {{ 'bg-white/10 text-white' if active else 'text-slate-400 hover:bg-white/5 hover:text-slate-200' }}">
-                <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="{{ path_d }}"/>
                 </svg>
                 {{ label }}
@@ -80,12 +47,12 @@
     <div class="px-2 py-3 border-t border-white/5">
         <div class="flex items-center justify-between px-3 py-2">
             <div class="flex items-center gap-2.5">
-                <div class="w-7 h-7 bg-indigo-500 rounded-lg flex items-center justify-center text-white text-xs font-bold">
+                <div class="w-8 h-8 bg-indigo-500 rounded-xl flex items-center justify-center text-white text-xs font-bold">
                     {{ current_user.username[0].upper() if current_user else 'A' }}
                 </div>
                 <span class="text-sm text-slate-400">{{ current_user.username if current_user else '' }}</span>
             </div>
-            <a href="/logout" class="text-slate-600 hover:text-slate-400 transition-colors" title="Выйти">
+            <a href="/logout" data-native-nav="true" class="text-slate-600 hover:text-slate-400 transition-colors" title="Выйти">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75"
                           d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -95,22 +62,22 @@
     </div>
 </div>
 
-<!-- Main (swappable via HTMX) -->
 <div id="page-content" class="ml-72 min-h-full"
      style="margin-left:288px;min-height:100vh">
-    <header class="h-16 bg-white border-b border-slate-100 flex items-center px-8 sticky top-0 z-20 gap-3">
+    <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/95 px-5 backdrop-blur lg:px-8">
         {% block header_left %}{% endblock %}
         <h1 class="text-xl font-bold text-slate-900 tracking-tight">{% block page_title %}{% endblock %}</h1>
         <div class="ml-auto flex items-center gap-3">
             {% block header_actions %}{% endblock %}
         </div>
     </header>
-    <main class="p-8">
-        {% block content %}{% endblock %}
+    <main class="p-5 lg:p-8">
+        <div class="mx-auto w-full max-w-[1380px]">
+            {% block content %}{% endblock %}
+        </div>
     </main>
 </div>
 
-<!-- Toast (Alpine) -->
 <div class="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"
      x-data="toastMgr()"
      @showtoast.window="add($event.detail)">
@@ -135,7 +102,6 @@
     </template>
 </div>
 
-<!-- Delete confirm modal (vanilla JS, no Alpine) -->
 <div id="del-modal" style="display:none"
      class="fixed inset-0 z-50 flex items-center justify-center">
     <div class="absolute inset-0 bg-black/25 backdrop-blur-[2px]" onclick="closeDel()"></div>
@@ -175,7 +141,6 @@ function toastMgr() {
     }
 }
 
-// Vanilla JS delete modal
 let _delFn = null;
 function showDel(message, fn) {
     document.getElementById('del-msg').textContent = message;
@@ -191,7 +156,6 @@ document.getElementById('del-confirm').addEventListener('click', function() {
     closeDel();
 });
 
-// HTMX toast trigger
 document.addEventListener('htmx:afterRequest', function(e) {
     const trigger = e.detail.xhr?.getResponseHeader('HX-Trigger');
     if (!trigger) return;
@@ -201,23 +165,24 @@ document.addEventListener('htmx:afterRequest', function(e) {
     } catch(_) {}
 });
 
-// HTMX partial swap: after swapping page-content, re-init Alpine + update nav active state
 document.addEventListener('htmx:afterSettle', function(e) {
-    if (e.detail.target && e.detail.target.id === 'page-content') {
-        // Re-initialize Alpine on new content
-        if (window.Alpine) {
-            Alpine.initTree(document.getElementById('page-content'));
-        }
-        // Update page title from response
+    const target = e.detail.target;
+    if (target && window.Alpine) {
+        Alpine.initTree(target);
+    }
+    if (target && target.id === 'page-content') {
         const html = e.detail.xhr?.responseText;
         if (html) {
             const m = html.match(/<title>([\s\S]*?)<\/title>/);
             if (m) document.title = m[1];
         }
-        // Update nav active state
         updateNavActive(window.location.pathname);
+        window.scrollTo(0, 0);
     }
+    syncEmptyStates();
 });
+
+document.addEventListener('DOMContentLoaded', syncEmptyStates);
 
 function updateNavActive(path) {
     document.querySelectorAll('[data-nav-href]').forEach(function(a) {
@@ -233,7 +198,30 @@ function updateNavActive(path) {
     });
 }
 
-// SPA navigation helper (used by row clicks, etc.)
+function syncEmptyStates() {
+    document.querySelectorAll('[data-empty-state]').forEach(function(list) {
+        const emptySelector = list.dataset.emptyState;
+        const itemSelector = list.dataset.itemSelector || '*';
+        const empty = emptySelector ? document.querySelector(emptySelector) : null;
+        if (!empty) return;
+        empty.classList.toggle('hidden', !!list.querySelector(itemSelector));
+    });
+}
+
+function shouldUseSpa(anchor) {
+    if (!anchor) return false;
+    if (anchor.hasAttribute('data-native-nav')) return false;
+    if (anchor.hasAttribute('download')) return false;
+    if (anchor.getAttribute('target') && anchor.getAttribute('target') !== '_self') return false;
+    if (anchor.getAttribute('hx-get') || anchor.getAttribute('hx-post') || anchor.getAttribute('hx-delete') || anchor.getAttribute('hx-put')) return false;
+    const href = anchor.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return false;
+    const url = new URL(anchor.href, window.location.origin);
+    if (url.origin !== window.location.origin) return false;
+    if (url.pathname === '/logout' || url.pathname.includes('/download')) return false;
+    return true;
+}
+
 function spaNavigate(url) {
     htmx.ajax('GET', url, {
         target: '#page-content',
@@ -241,12 +229,19 @@ function spaNavigate(url) {
         select: '#page-content'
     });
     history.pushState({}, '', url);
-    updateNavActive(url);
+    updateNavActive(new URL(url, window.location.origin).pathname);
 }
 
-// Handle browser back/forward
+document.addEventListener('click', function(event) {
+    const anchor = event.target.closest('a[href]');
+    if (!shouldUseSpa(anchor)) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    spaNavigate(anchor.href);
+});
+
 window.addEventListener('popstate', function() {
-    htmx.ajax('GET', window.location.pathname, {
+    htmx.ajax('GET', window.location.pathname + window.location.search, {
         target: '#page-content',
         swap: 'outerHTML',
         select: '#page-content'

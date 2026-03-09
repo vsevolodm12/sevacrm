@@ -5,7 +5,7 @@
 
 {% block header_actions %}
 <button onclick="document.getElementById('add-order-modal').style.display='flex'"
-        class="flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-xl transition-colors">
+        class="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800">
     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
     </svg>
@@ -14,59 +14,64 @@
 {% endblock %}
 
 {% block content %}
-
 {% set active_orders = orders_with_payment | selectattr('order.is_active') | list %}
-<div class="flex items-center gap-8 mb-7 px-6 py-4 bg-white rounded-2xl border border-slate-100">
-    <div>
-        <p class="text-xs text-slate-400 mb-0.5">Всего заказов</p>
-        <p class="text-2xl font-bold text-slate-900">{{ orders_with_payment | length }}</p>
+
+<div class="mb-7 grid gap-4 md:grid-cols-3">
+    <div class="rounded-2xl bg-white px-6 py-5">
+        <p class="text-xs text-slate-400">Всего заказов</p>
+        <p class="mt-2 text-2xl font-bold text-slate-900">{{ orders_with_payment | length }}</p>
     </div>
-    <div class="w-px h-8 bg-slate-100"></div>
-    <div>
-        <p class="text-xs text-slate-400 mb-0.5">Активных</p>
-        <p class="text-2xl font-bold text-emerald-600">{{ active_orders | length }}</p>
+    <div class="rounded-2xl bg-white px-6 py-5">
+        <p class="text-xs text-slate-400">Активных</p>
+        <p class="mt-2 text-2xl font-bold text-emerald-600">{{ active_orders | length }}</p>
     </div>
-    <div class="w-px h-8 bg-slate-100"></div>
-    <div>
-        <p class="text-xs text-slate-400 mb-0.5">Обслуживание / мес</p>
-        <p class="text-2xl font-bold text-slate-900">
-            ₽ {{ "%.0f"|format(active_orders | sum(attribute='order.monthly_fee') or 0) }}
-        </p>
+    <div class="rounded-2xl bg-white px-6 py-5">
+        <p class="text-xs text-slate-400">Обслуживание / мес</p>
+        {% if maintenance_by_currency %}
+        <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+            {% for cur, total in maintenance_by_currency.items() %}
+            <p class="text-2xl font-bold text-slate-900">{{ total|money }} {% if cur == 'USD' %}${% elif cur == 'EUR' %}€{% else %}₽{% endif %}</p>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="mt-2 text-2xl font-bold text-slate-300">—</p>
+        {% endif %}
     </div>
 </div>
 
-<div id="orders-grid" class="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+<div id="orders-grid" class="overflow-hidden rounded-2xl bg-white">
     {% for item in orders_with_payment %}
         {% with order=item.order, current_payment=item.current_payment %}
             {% include "orders/card.html" %}
         {% endwith %}
     {% else %}
         <div class="flex flex-col items-center justify-center py-24 text-slate-300">
-            <svg class="h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="mb-4 h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
                       d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
             </svg>
             <p class="text-base text-slate-400">Заказов пока нет</p>
-            <p class="text-sm text-slate-300 mt-1">Нажмите «Новый заказ» чтобы начать</p>
+            <p class="mt-1 text-sm text-slate-300">Нажмите «Новый заказ» чтобы начать</p>
         </div>
     {% endfor %}
 </div>
 
-<!-- Add order modal -->
 <div id="add-order-modal" style="display:none"
      class="fixed inset-0 z-50 flex items-center justify-center">
-    <div class="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
-         onclick="closeOrderModal()"></div>
+    <div class="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onclick="closeOrderModal()"></div>
 
-    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 z-10 max-h-[90vh] overflow-y-auto"
+    <div class="relative z-10 mx-4 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
          x-data="orderForm()"
          x-init="fetchRates()"
-         @order-created.window="closeAndReset()">
+         @order-created.window="closeOrderModal(); resetValues()">
 
-        <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
-            <h3 class="text-base font-semibold text-slate-900">Новый заказ</h3>
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+            <div>
+                <h3 class="text-base font-semibold text-slate-900">Новый заказ</h3>
+                <p class="mt-1 text-sm text-slate-400">Чистая карточка без лишних полей</p>
+            </div>
             <button type="button" onclick="closeOrderModal()"
-                    class="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                    class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -78,144 +83,148 @@
               hx-target="#orders-grid"
               hx-swap="afterbegin"
               hx-encoding="multipart/form-data"
-              hx-on::after-request="if(event.detail.successful){ document.dispatchEvent(new CustomEvent('order-created')); this.reset(); }"
-              class="px-6 py-5 space-y-4">
+              hx-on::after-request="if(event.detail.successful){ window.dispatchEvent(new CustomEvent('order-created')); this.reset(); }"
+              class="grid grid-cols-1 gap-6 px-6 py-5 lg:grid-cols-2">
 
-            <div>
-                <label class="block text-sm font-medium text-slate-600 mb-2">Название заказа</label>
-                <input type="text" name="title" placeholder="Поддержка сайта, разработка CRM..."
-                       class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"/>
+            <div class="space-y-4">
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-slate-600">Название заказа</label>
+                    <input type="text" name="title" placeholder="Поддержка сайта, разработка CRM..."
+                           class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
+                </div>
+
+                <div class="grid gap-3 md:grid-cols-2">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-600">Клиент</label>
+                        <input type="text" name="name" placeholder="Имя клиента"
+                               class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-600">Телефон</label>
+                        <input type="text" name="phone" placeholder="+7 900 000 00 00"
+                               class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
+                    </div>
+                </div>
+
+                <div class="grid gap-3 md:grid-cols-2">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-600">Дата начала</label>
+                        <input type="text" name="start_date" :value="todayStr"
+                               placeholder="ДД.ММ.ГГГГ" maxlength="10"
+                               @input="maskDate($event)"
+                               class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-600">Дата окончания <span class="text-xs font-normal text-slate-300">опц.</span></label>
+                        <input type="text" name="end_date"
+                               placeholder="ДД.ММ.ГГГГ" maxlength="10"
+                               @input="maskDate($event)"
+                               class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
+                    </div>
+                </div>
+
+                {% if partners %}
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-slate-600">Партнёр <span class="text-xs font-normal text-slate-300">доля 50/50</span></label>
+                    <div x-data="{pid:''}" class="flex flex-wrap gap-2">
+                        <button type="button" @click="pid=''"
+                                :class="pid==='' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                                class="rounded-full px-3 py-1.5 text-sm transition-all">Без партнёра</button>
+                        {% for p in partners %}
+                        <button type="button" @click="pid='{{ p.id }}'"
+                                :class="pid==='{{ p.id }}' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
+                                class="rounded-full px-3 py-1.5 text-sm transition-all">{{ p.name }}</button>
+                        {% endfor %}
+                        <input type="hidden" name="partner_id" :value="pid">
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-2">Клиент</label>
-                    <input type="text" name="name" placeholder="Имя клиента"
-                           class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"/>
+                    <label class="mb-2 block text-sm font-medium text-slate-600">Валюта</label>
+                    <div class="inline-flex gap-0.5 rounded-xl bg-slate-100 p-1">
+                        <button type="button" @click="switchCur('RUB')"
+                                :class="cur==='RUB' ? 'bg-white shadow-sm text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'"
+                                class="rounded-lg px-4 py-2 text-sm transition-all">₽ RUB</button>
+                        <button type="button" @click="switchCur('USD')"
+                                :class="cur==='USD' ? 'bg-white shadow-sm text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'"
+                                class="rounded-lg px-4 py-2 text-sm transition-all">$ USD</button>
+                        <button type="button" @click="switchCur('EUR')"
+                                :class="cur==='EUR' ? 'bg-white shadow-sm text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'"
+                                class="rounded-lg px-4 py-2 text-sm transition-all">€ EUR</button>
+                        <input type="hidden" name="currency" :value="cur">
+                    </div>
+                    <p x-show="cur!=='RUB'" class="mt-1.5 text-xs text-slate-400" x-text="rateHint"></p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-2">Телефон</label>
-                    <input type="text" name="phone" placeholder="+7 900 000 00 00"
-                           class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"/>
-                </div>
-            </div>
 
-            <div class="grid grid-cols-2 gap-3">
-                <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-2">Дата начала</label>
-                    <input type="text" name="start_date" :value="todayStr"
-                           placeholder="ДД.ММ.ГГГГ" maxlength="10"
-                           @input="maskDate($event)"
-                           class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"/>
+                <div class="grid gap-3 md:grid-cols-2">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-600">Абон. плата</label>
+                        <div class="relative">
+                            <input type="text"
+                                   x-ref="monthlyInput"
+                                   @input="liveFormat($event, 'monthly')"
+                                   @focus="$event.target.select()"
+                                   placeholder="0"
+                                   class="w-full rounded-xl bg-slate-50 px-4 py-3 pr-9 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
+                            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400" x-text="curSymbol"></span>
+                        </div>
+                        <input type="hidden" name="monthly_fee" :value="monthly">
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-slate-600">Разработка</label>
+                        <div class="relative">
+                            <input type="text"
+                                   x-ref="devInput"
+                                   @input="liveFormat($event, 'dev')"
+                                   @focus="$event.target.select()"
+                                   placeholder="0"
+                                   class="w-full rounded-xl bg-slate-50 px-4 py-3 pr-9 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
+                            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400" x-text="curSymbol"></span>
+                        </div>
+                        <input type="hidden" name="dev_price" :value="dev">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-2">Дата окончания <span class="text-slate-300 font-normal text-xs">опц.</span></label>
-                    <input type="text" name="end_date"
-                           placeholder="ДД.ММ.ГГГГ" maxlength="10"
-                           @input="maskDate($event)"
-                           class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-4 py-3 text-sm outline-none transition-all"/>
-                </div>
-            </div>
 
-            <!-- Currency toggle -->
-            <div>
-                <label class="block text-sm font-medium text-slate-600 mb-2">Валюта</label>
-                <div class="inline-flex bg-slate-100 rounded-xl p-1 gap-0.5">
-                    <button type="button" @click="switchCur('RUB')"
-                            :class="cur==='RUB' ? 'bg-white shadow-sm text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'"
-                            class="px-4 py-2 text-sm rounded-lg transition-all">₽ RUB</button>
-                    <button type="button" @click="switchCur('USD')"
-                            :class="cur==='USD' ? 'bg-white shadow-sm text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'"
-                            class="px-4 py-2 text-sm rounded-lg transition-all">$ USD</button>
-                    <button type="button" @click="switchCur('EUR')"
-                            :class="cur==='EUR' ? 'bg-white shadow-sm text-slate-900 font-semibold' : 'text-slate-400 hover:text-slate-600'"
-                            class="px-4 py-2 text-sm rounded-lg transition-all">€ EUR</button>
-                    <input type="hidden" name="currency" :value="cur">
-                </div>
-                <p x-show="cur!=='RUB'" class="text-xs text-slate-400 mt-1.5" x-text="rateHint"></p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-2">Абон. плата</label>
+                    <label class="mb-2 block text-sm font-medium text-slate-600">Аванс получен</label>
                     <div class="relative">
                         <input type="text"
-                               x-ref="monthlyInput"
-                               @input="liveFormat($event, 'monthly')"
+                               x-ref="advanceInput"
+                               @input="liveFormat($event, 'advance')"
                                @focus="$event.target.select()"
                                placeholder="0"
-                               class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-4 py-3 pr-9 text-sm outline-none transition-all"/>
-                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" x-text="curSymbol"></span>
+                               class="w-full rounded-xl bg-slate-50 px-4 py-3 pr-9 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
+                        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400" x-text="curSymbol"></span>
                     </div>
-                    <input type="hidden" name="monthly_fee" :value="monthly">
+                    <input type="hidden" name="advance_amount" :value="advance">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-600 mb-2">Разработка</label>
-                    <div class="relative">
-                        <input type="text"
-                               x-ref="devInput"
-                               @input="liveFormat($event, 'dev')"
-                               @focus="$event.target.select()"
-                               placeholder="0"
-                               class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-4 py-3 pr-9 text-sm outline-none transition-all"/>
-                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" x-text="curSymbol"></span>
-                    </div>
-                    <input type="hidden" name="dev_price" :value="dev">
+
+                <div class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-4"
+                     x-data="{ files: [] }"
+                     @order-created.window="files=[]; $refs.orderFiles.value=''">
+                    <label class="mb-1 block text-sm font-medium text-slate-600">Документы</label>
+                    <label class="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50">
+                        <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                        </svg>
+                        <span x-text="files.length ? files.length + ' файл(ов)' : 'Прикрепить документы'"></span>
+                        <input x-ref="orderFiles" type="file" name="doc_files" multiple class="sr-only"
+                               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                               @change="files = Array.from($event.target.files)"/>
+                    </label>
                 </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-slate-600 mb-2">Аванс получен</label>
-                <div class="relative">
-                    <input type="text"
-                           x-ref="advanceInput"
-                           @input="liveFormat($event, 'advance')"
-                           @focus="$event.target.select()"
-                           placeholder="0"
-                           class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-4 py-3 pr-9 text-sm outline-none transition-all"/>
-                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none" x-text="curSymbol"></span>
-                </div>
-                <input type="hidden" name="advance_amount" :value="advance">
-            </div>
-
-            <!-- Partner pills -->
-            {% if partners %}
-            <div>
-                <label class="block text-sm font-medium text-slate-600 mb-2">Партнёр <span class="text-slate-300 font-normal text-xs">доля 50/50</span></label>
-                <div x-data="{pid:''}" class="flex flex-wrap gap-2">
-                    <button type="button" @click="pid=''"
-                            :class="pid==='' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                            class="px-3 py-1.5 text-sm rounded-full transition-all">Без партнёра</button>
-                    {% for p in partners %}
-                    <button type="button" @click="pid='{{ p.id }}'"
-                            :class="pid==='{{ p.id }}' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'"
-                            class="px-3 py-1.5 text-sm rounded-full transition-all">{{ p.name }}</button>
-                    {% endfor %}
-                    <input type="hidden" name="partner_id" :value="pid">
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Documents -->
-            <div class="border-t border-slate-100 pt-4" x-data="{ files: [] }">
-                <label class="inline-flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 ring-1 ring-slate-200 rounded-xl cursor-pointer transition-colors text-sm text-slate-600 font-medium">
-                    <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
-                    </svg>
-                    <span x-text="files.length ? files.length + ' файл(ов)' : 'Прикрепить документы'"></span>
-                    <input type="file" name="doc_files" multiple class="sr-only"
-                           accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                           @change="files = Array.from($event.target.files)"/>
-                </label>
-            </div>
-
-            <div class="flex justify-end gap-3 pt-2">
+            <div class="flex justify-end gap-3 border-t border-slate-100 pt-5 lg:col-span-2">
                 <button type="button" onclick="closeOrderModal()"
-                        class="px-4 py-2.5 text-sm text-slate-500 hover:text-slate-800 transition-colors">
+                        class="px-4 py-2.5 text-sm text-slate-500 transition-colors hover:text-slate-800">
                     Отмена
                 </button>
                 <button type="submit"
-                        class="px-6 py-2.5 text-sm bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors">
+                        class="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-800">
                     Добавить
                 </button>
             </div>
@@ -245,9 +254,6 @@ function orderForm() {
             if (!n || isNaN(n) || n == 0) return '';
             return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
         },
-        parseNum(s) {
-            return parseFloat(String(s).replace(/[\s\u00a0,]/g, '')) || 0;
-        },
         liveFormat(e, field) {
             const el = e.target;
             const cursor = el.selectionStart;
@@ -259,6 +265,7 @@ function orderForm() {
             el.selectionStart = el.selectionEnd = Math.max(0, cursor + (formatted.length - oldLen));
         },
         maskDate(e) {
+            if (e.inputType && e.inputType.includes('delete')) return;
             const el = e.target;
             let v = el.value.replace(/\D/g, '').slice(0, 8);
             if (v.length >= 5) v = v.slice(0,2) + '.' + v.slice(2,4) + '.' + v.slice(4);
@@ -291,8 +298,7 @@ function orderForm() {
                 if (this.$refs.advanceInput) this.$refs.advanceInput.value = this.fmt(this.advance);
             });
         },
-        closeAndReset() {
-            closeOrderModal();
+        resetValues() {
             this.cur = 'RUB';
             this.monthly = 0;
             this.dev = 0;

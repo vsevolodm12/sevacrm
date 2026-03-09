@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.templates_config import templates
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
+from app.htmx import set_htmx_toast
 from app.models.models import Client, Partner, Project, User
 
 router = APIRouter(prefix="/partners")
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("", response_class=HTMLResponse)
@@ -67,8 +67,7 @@ async def create_partner(
             "projects_count": projects_count,
         },
     )
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Партнёр добавлен", "type": "success"}}'
-    return response
+    return set_htmx_toast(response, "Партнёр добавлен")
 
 
 @router.get("/{partner_id}/edit", response_class=HTMLResponse)
@@ -121,8 +120,7 @@ async def update_partner(
             "projects_count": projects_count,
         },
     )
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Партнёр обновлён", "type": "success"}}'
-    return response
+    return set_htmx_toast(response, "Партнёр обновлён")
 
 
 @router.delete("/{partner_id}")
@@ -136,5 +134,4 @@ async def delete_partner(
         db.delete(partner)
         db.commit()
     response = Response(content="", status_code=200)
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Партнёр удалён", "type": "success"}}'
-    return response
+    return set_htmx_toast(response, "Партнёр удалён")

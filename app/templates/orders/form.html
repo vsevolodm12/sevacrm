@@ -1,10 +1,16 @@
 <!-- Inline edit form (returned via HTMX GET /orders/{id}/edit) -->
-<div class="p-5"
+<div class="bg-white rounded-2xl p-5"
      x-data="editOrderForm('{{ order.currency }}', {{ order.monthly_fee or 0 }}, {{ order.dev_price or 0 }}, {{ order.advance_amount or 0 }})"
      x-init="fetchRates(); $nextTick(() => { $refs.monthlyInput.value = fmt(monthly); $refs.devInput.value = fmt(dev); $refs.advanceInput.value = fmt(advance); })">
     <form hx-put="/orders/{{ order.id }}"
+          {% if detail_mode %}
+          hx-target="#page-content"
+          hx-select="#page-content"
+          hx-swap="outerHTML"
+          {% else %}
           hx-target="#order-{{ order.id }}"
           hx-swap="outerHTML"
+          {% endif %}
           class="space-y-3">
 
         <div>
@@ -105,14 +111,24 @@
                         class="px-3 py-1.5 text-xs rounded-lg transition-all">€</button>
                 <input type="hidden" name="currency" :value="cur">
             </div>
-            <!-- Active toggle -->
-            <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input type="checkbox" name="is_active" value="on" {{ 'checked' if order.is_active }} class="sr-only peer">
-                <div class="w-9 h-5 bg-slate-200 peer-checked:bg-emerald-500 rounded-full relative transition-colors
-                            after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all
-                            peer-checked:after:translate-x-4"></div>
-                <span class="text-xs text-slate-500">Активен</span>
-            </label>
+            <div class="flex items-center gap-4">
+                <!-- Active toggle -->
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" name="is_active" value="on" {{ 'checked' if order.is_active }} class="sr-only peer">
+                    <div class="w-9 h-5 bg-slate-200 peer-checked:bg-emerald-500 rounded-full relative transition-colors
+                                after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all
+                                peer-checked:after:translate-x-4"></div>
+                    <span class="text-xs text-slate-500">Активен</span>
+                </label>
+                <!-- Completed toggle -->
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" name="is_completed" value="on" {{ 'checked' if order.is_completed }} class="sr-only peer">
+                    <div class="w-9 h-5 bg-slate-200 peer-checked:bg-indigo-500 rounded-full relative transition-colors
+                                after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all
+                                peer-checked:after:translate-x-4"></div>
+                    <span class="text-xs text-slate-500">Завершён</span>
+                </label>
+            </div>
         </div>
 
         {% if partners is defined %}
@@ -134,7 +150,7 @@
 
         <div class="flex justify-end gap-2 pt-1">
             <button type="button"
-                    onclick="document.getElementById('order-edit-{{ order.id }}').innerHTML=''"
+                    onclick="document.getElementById('order-inline-edit').innerHTML=''"
                     class="px-3 py-2 text-sm text-slate-500 hover:text-slate-800 transition-colors">Отмена</button>
             <button type="submit"
                     class="px-4 py-2 text-sm bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors">Сохранить</button>
@@ -173,6 +189,7 @@ function editOrderForm(initCur, initMonthly, initDev, initAdvance) {
             el.selectionStart = el.selectionEnd = Math.max(0, cursor + delta);
         },
         maskDate(e) {
+            if (e.inputType && e.inputType.includes('delete')) return;
             const el = e.target;
             let v = el.value.replace(/\D/g, '').slice(0, 8);
             if (v.length >= 5) v = v.slice(0, 2) + '.' + v.slice(2, 4) + '.' + v.slice(4);

@@ -14,23 +14,22 @@
 {% endblock %}
 
 {% block content %}
-<div id="partners-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+<div id="partners-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+     data-empty-state="#partners-empty" data-item-selector="[data-partner-item]">
     {% for item in partners_data %}
         {% with partner=item.partner, clients_count=item.clients_count, projects_count=item.projects_count %}
             {% include "partners/card.html" %}
         {% endwith %}
-    {% else %}
-        <div class="col-span-3 flex flex-col items-center justify-center py-20 text-slate-300">
-            <svg class="h-10 w-10 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25"
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-            </svg>
-            <p class="text-sm text-slate-400">Партнёры ещё не добавлены</p>
-        </div>
     {% endfor %}
 </div>
+<div id="partners-empty" class="{{ 'hidden' if partners_data else '' }} col-span-3 flex flex-col items-center justify-center py-20 text-slate-300">
+    <svg class="h-10 w-10 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.25"
+              d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+    </svg>
+    <p class="text-sm text-slate-400">Партнёры ещё не добавлены</p>
+</div>
 
-<!-- Add partner modal -->
 <div id="add-partner-modal" style="display:none"
      class="fixed inset-0 z-50 flex items-center justify-center">
     <div class="absolute inset-0 bg-black/25 backdrop-blur-[2px]"

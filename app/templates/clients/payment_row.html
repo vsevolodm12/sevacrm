@@ -11,8 +11,7 @@
     </div>
     <div class="flex items-center gap-3">
         <span class="text-sm font-semibold text-slate-900">
-            {% if payment.currency == 'USD' %}${% elif payment.currency == 'EUR' %}€{% else %}₽{% endif %}
-            {{ "%.0f"|format(payment.amount) }}
+            {{ payment.amount|money }} {% if payment.currency == 'USD' %}${% elif payment.currency == 'EUR' %}€{% else %}₽{% endif %}
         </span>
         {% if payment.paid_at %}
         <span class="text-xs text-slate-400">{{ payment.paid_at.strftime('%d.%m.%Y') }}</span>

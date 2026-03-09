@@ -62,6 +62,17 @@ class StatsService:
             "total_month_income": my_paid,
         }
 
+    def _completed_orders_for_month(self, db, month, year):
+        """Завершённые заказы, чья дата завершения попадает в данный месяц"""
+        completed = db.query(Client).filter(Client.is_completed == True).all()
+        result = []
+        for c in completed:
+            # Определяем месяц завершения: end_date → completed_at → created_at
+            ref_dt = c.end_date or c.completed_at or c.created_at
+            if ref_dt and ref_dt.month == month and ref_dt.year == year:
+                result.append(c)
+        return result
+
     def get_all_monthly_history(self, db: Session) -> List[Dict[str, Any]]:
         today = date.today()
         result = []

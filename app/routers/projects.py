@@ -2,15 +2,15 @@ from datetime import datetime, date
 
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.templates_config import templates
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
-from app.models.models import Client, Partner, Project, ProjectPayment, ProjectStatus, User
+from app.htmx import set_htmx_toast
+from app.models.models import Client, Document, Partner, Project, ProjectPayment, ProjectStatus, User
 
 router = APIRouter(prefix="/projects")
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("", response_class=HTMLResponse)
@@ -95,8 +95,7 @@ async def create_project(
             "ProjectStatus": ProjectStatus,
         },
     )
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Проект создан", "type": "success"}}'
-    return response
+    return set_htmx_toast(response, "Проект создан")
 
 
 @router.get("/{project_id}", response_class=HTMLResponse)
@@ -200,21 +199,50 @@ async def update_project(
     db.commit()
     db.refresh(project)
 
-    response = templates.TemplateResponse(
-        "projects/card.html",
-        {
-            "request": request,
-            "project": project,
-            "ProjectStatus": ProjectStatus,
-        },
-    )
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Проект обновлён", "type": "success"}}'
-    return response
+    current_url = (request.headers.get("HX-Current-URL") or "").rstrip("/")
+    detail_mode = current_url.endswith(f"/projects/{project_id}")
+
+    if detail_mode:
+        payments = (
+            db.query(ProjectPayment)
+            .filter(ProjectPayment.project_id == project_id)
+            .order_by(ProjectPayment.created_at.desc())
+            .all()
+        )
+        clients = db.query(Client).filter(Client.is_active == True).all()
+        partners = db.query(Partner).filter(Partner.is_active == True).all()
+        total_paid = sum(float(p.amount) for p in payments if p.is_paid)
+        total_pending = sum(float(p.amount) for p in payments if not p.is_paid)
+        response = templates.TemplateResponse(
+            "projects/detail.html",
+            {
+                "request": request,
+                "current_user": current_user,
+                "project": project,
+                "payments": payments,
+                "clients": clients,
+                "partners": partners,
+                "total_paid": total_paid,
+                "total_pending": total_pending,
+                "ProjectStatus": ProjectStatus,
+            },
+        )
+    else:
+        response = templates.TemplateResponse(
+            "projects/card.html",
+            {
+                "request": request,
+                "project": project,
+                "ProjectStatus": ProjectStatus,
+            },
+        )
+    return set_htmx_toast(response, "Проект обновлён")
 
 
 @router.delete("/{project_id}")
 async def delete_project(
     project_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -223,8 +251,10 @@ async def delete_project(
         db.delete(project)
         db.commit()
     response = Response(content="", status_code=200)
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Проект удалён", "type": "success"}}'
-    return response
+    current_url = request.headers.get("HX-Current-URL", "")
+    if f"/projects/{project_id}" in current_url:
+        response.headers["HX-Location"] = '{"path":"/projects","target":"#page-content","select":"#page-content","swap":"outerHTML"}'
+    return set_htmx_toast(response, "Проект удалён")
 
 
 @router.post("/{project_id}/payments", response_class=HTMLResponse)
@@ -257,8 +287,7 @@ async def create_project_payment(
         "projects/payment_row.html",
         {"request": request, "payment": payment},
     )
-    response.headers["HX-Trigger"] = '{"showToast": {"message": "Платёж добавлен", "type": "success"}}'
-    return response
+    return set_htmx_toast(response, "Платёж добавлен")
 
 
 @router.put("/payments/{payment_id}/toggle", response_class=HTMLResponse)

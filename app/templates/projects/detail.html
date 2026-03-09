@@ -1,274 +1,240 @@
 {% extends "base.html" %}
 
 {% block title %}{{ project.title }} — SevaCRM{% endblock %}
-{% block page_title %}{{ project.title }}{% endblock %}
 
 {% set status_labels = {'new': 'Новый', 'in_progress': 'В работе', 'completed': 'Завершён', 'cancelled': 'Отменён'} %}
 {% set status_classes = {
     'new': 'bg-blue-100 text-blue-700',
-    'in_progress': 'bg-yellow-100 text-yellow-700',
-    'completed': 'bg-green-100 text-green-700',
+    'in_progress': 'bg-amber-100 text-amber-700',
+    'completed': 'bg-emerald-100 text-emerald-700',
     'cancelled': 'bg-slate-100 text-slate-500'
 } %}
+{% set sym = '$' if project.currency == 'USD' else ('€' if project.currency == 'EUR' else '₽') %}
 
-{% block header_actions %}
-<a href="/projects"
-   class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-800 transition-colors">
+{% block header_left %}
+<button onclick="spaNavigate('/projects')"
+        class="flex flex-shrink-0 items-center gap-1.5 text-sm text-slate-400 transition-colors hover:text-slate-700">
     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
     </svg>
-    Назад
-</a>
+    Проекты
+</button>
+<span class="text-slate-200">|</span>
+{% endblock %}
+
+{% block page_title %}{{ project.title }}{% endblock %}
+
+{% block header_actions %}
+<button onclick="document.getElementById('edit-project-modal').style.display='flex'"
+        class="flex items-center gap-1.5 rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-200">
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+    </svg>
+    Редактировать
+</button>
+<button type="button"
+        onclick="showDel('Удалить проект «{{ project.title }}»?', () => htmx.ajax('DELETE', '/projects/{{ project.id }}', {swap:'none'}))"
+        class="flex items-center gap-1.5 rounded-xl bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-100">
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+    </svg>
+    Удалить
+</button>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="mx-auto max-w-6xl space-y-6">
 
-        <!-- Project info -->
-        <div class="lg:col-span-1 space-y-5">
-            <div class="bg-white rounded-xl border border-slate-200 p-6">
-                <div class="flex items-center gap-2 mb-4">
+    <!-- Project info card -->
+    <section class="overflow-hidden rounded-2xl bg-white">
+        <div class="border-b border-slate-100 px-6 py-6 lg:px-7">
+            <div class="space-y-4">
+                <div class="flex items-center gap-2 flex-wrap">
                     <span class="px-2.5 py-1 rounded-full text-xs font-medium {{ status_classes[project.status.value] }}">
                         {{ status_labels[project.status.value] }}
                     </span>
+                    {% if project.partner %}
+                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">{{ project.partner.name }} · 50/50</span>
+                    {% endif %}
                 </div>
 
-                <dl class="space-y-3">
+                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     {% if project.client %}
                     <div>
-                        <dt class="text-xs text-slate-400 font-medium">Клиент</dt>
-                        <dd class="text-sm text-slate-700 mt-0.5">
-                            <a href="/clients/{{ project.client.id }}" class="hover:text-indigo-600 transition-colors">
-                                {{ project.client.name }}
-                            </a>
-                        </dd>
+                        <p class="text-xs text-slate-400">Клиент</p>
+                        <a href="/orders/{{ project.client.id }}" class="mt-1 text-sm font-medium text-slate-800 hover:text-indigo-600 transition-colors block">{{ project.client.name }}</a>
                     </div>
                     {% endif %}
-                    {% if project.partner %}
-                    <div>
-                        <dt class="text-xs text-slate-400 font-medium">Партнёр</dt>
-                        <dd class="text-sm text-purple-600 mt-0.5">{{ project.partner.name }}</dd>
-                    </div>
-                    {% endif %}
-                    <div>
-                        <dt class="text-xs text-slate-400 font-medium">Общая сумма</dt>
-                        <dd class="text-sm font-semibold text-slate-900 mt-0.5">
-                            {% if project.currency == 'USD' %}${% elif project.currency == 'EUR' %}€{% else %}₽{% endif %}
-                            {{ "%.0f"|format(project.total_amount or 0) }}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs text-slate-400 font-medium">Моя доля</dt>
-                        <dd class="text-sm font-bold text-indigo-600 mt-0.5">
-                            {% if project.currency == 'USD' %}${% elif project.currency == 'EUR' %}€{% else %}₽{% endif %}
-                            {{ "%.0f"|format(project.my_share or 0) }}
-                        </dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs text-slate-400 font-medium">Аванс</dt>
-                        <dd class="text-sm text-slate-700 mt-0.5">
-                            {% if project.currency == 'USD' %}${% elif project.currency == 'EUR' %}€{% else %}₽{% endif %}
-                            {{ "%.0f"|format(project.advance_amount or 0) }}
-                        </dd>
-                    </div>
                     {% if project.start_date %}
                     <div>
-                        <dt class="text-xs text-slate-400 font-medium">Начало</dt>
-                        <dd class="text-sm text-slate-700 mt-0.5">{{ project.start_date.strftime('%d.%m.%Y') }}</dd>
-                    </div>
-                    {% endif %}
-                    {% if project.end_date %}
-                    <div>
-                        <dt class="text-xs text-slate-400 font-medium">Окончание</dt>
-                        <dd class="text-sm text-slate-700 mt-0.5">{{ project.end_date.strftime('%d.%m.%Y') }}</dd>
+                        <p class="text-xs text-slate-400">Период</p>
+                        <p class="mt-1 text-sm font-medium text-slate-800">
+                            {{ project.start_date.strftime('%d.%m.%Y') }}
+                            {% if project.end_date %} — {{ project.end_date.strftime('%d.%m.%Y') }}{% endif %}
+                        </p>
                     </div>
                     {% endif %}
                     {% if project.notes %}
-                    <div>
-                        <dt class="text-xs text-slate-400 font-medium">Заметки</dt>
-                        <dd class="text-sm text-slate-600 mt-0.5 leading-relaxed">{{ project.notes }}</dd>
+                    <div class="sm:col-span-2">
+                        <p class="text-xs text-slate-400">Заметки</p>
+                        <p class="mt-1 text-sm text-slate-600 leading-relaxed">{{ project.notes }}</p>
                     </div>
                     {% endif %}
-                </dl>
-
-                <div class="mt-5 pt-5 border-t border-slate-100">
-                    <button onclick="document.getElementById('edit-project-modal').classList.remove('hidden')"
-                            class="w-full py-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
-                        Редактировать проект
-                    </button>
-                </div>
-            </div>
-
-            <!-- Payment summary -->
-            <div class="bg-white rounded-xl border border-slate-200 p-5">
-                <h3 class="text-sm font-semibold text-slate-900 mb-3">Сводка платежей</h3>
-                <div class="space-y-2">
-                    <div class="flex justify-between text-sm">
-                        <span class="text-slate-500">Получено</span>
-                        <span class="font-semibold text-green-600">
-                            {% if project.currency == 'USD' %}${% elif project.currency == 'EUR' %}€{% else %}₽{% endif %}
-                            {{ "%.0f"|format(total_paid) }}
-                        </span>
-                    </div>
-                    <div class="flex justify-between text-sm">
-                        <span class="text-slate-500">Ожидается</span>
-                        <span class="font-semibold text-amber-600">
-                            {% if project.currency == 'USD' %}${% elif project.currency == 'EUR' %}€{% else %}₽{% endif %}
-                            {{ "%.0f"|format(total_pending) }}
-                        </span>
-                    </div>
-                    <div class="flex justify-between text-sm pt-2 border-t border-slate-100">
-                        <span class="text-slate-700 font-medium">Моя доля</span>
-                        <span class="font-bold text-indigo-600">
-                            {% if project.currency == 'USD' %}${% elif project.currency == 'EUR' %}€{% else %}₽{% endif %}
-                            {{ "%.0f"|format(project.my_share or 0) }}
-                        </span>
-                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Right column -->
-        <div class="lg:col-span-2 space-y-5">
+        <div class="grid gap-px bg-slate-100 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="bg-white px-6 py-5">
+                <p class="text-xs text-slate-400">Общая сумма</p>
+                <p class="mt-2 text-xl font-bold text-slate-900">{{ (project.total_amount or 0)|money }} {{ sym }}</p>
+            </div>
+            <div class="bg-white px-6 py-5">
+                <p class="text-xs text-slate-400">Моя доля</p>
+                <p class="mt-2 text-xl font-bold text-indigo-600">{{ (project.my_share or 0)|money }} {{ sym }}</p>
+            </div>
+            <div class="bg-white px-6 py-5">
+                <p class="text-xs text-slate-400">Получено</p>
+                <p class="mt-2 text-xl font-bold text-emerald-600">{{ total_paid|money }} {{ sym }}</p>
+            </div>
+            <div class="bg-white px-6 py-5">
+                <p class="text-xs text-slate-400">Ожидается</p>
+                <p class="mt-2 text-xl font-bold text-amber-600">{{ total_pending|money }} {{ sym }}</p>
+            </div>
+        </div>
+    </section>
 
-            <!-- Add payment -->
-            <div class="bg-white rounded-xl border border-slate-200 p-5">
-                <h3 class="text-sm font-semibold text-slate-900 mb-4">Добавить платёж</h3>
-                <form
-                    hx-post="/projects/{{ project.id }}/payments"
-                    hx-target="#project-payments-list"
-                    hx-swap="afterbegin"
-                    hx-on::after-request="this.reset()"
-                    class="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.95fr)]">
+        <!-- Payments -->
+        <section class="rounded-2xl bg-white p-6" x-data="{ showAddPayment: false }">
+            <div class="mb-5 flex items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-900">Платежи</h3>
+                    <p class="mt-1 text-xs text-slate-400">Поступления по проекту</p>
+                </div>
+                <button @click="showAddPayment = !showAddPayment"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition-colors hover:bg-indigo-100">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Добавить платёж
+                </button>
+            </div>
+
+            <div x-show="showAddPayment" class="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <form hx-post="/projects/{{ project.id }}/payments"
+                      hx-target="#project-payments-list"
+                      hx-swap="afterbegin"
+                      hx-on::after-request="if(event.detail.successful){ showAddPayment=false; this.reset(); }"
+                      class="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
                     <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Тип</label>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-400">Тип</label>
                         <select name="payment_type"
-                                class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                class="w-full rounded-xl bg-white px-3 py-2 text-sm outline-none ring-1 ring-slate-200 transition-all focus:ring-2 focus:ring-slate-900">
                             <option value="advance">Аванс</option>
                             <option value="partial" selected>Частичный</option>
                             <option value="final">Финальный</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Сумма *</label>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-400">Сумма *</label>
                         <input type="number" name="amount" step="0.01" min="0" required placeholder="0"
-                               class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                               class="w-full rounded-xl bg-white px-3 py-2 text-sm outline-none ring-1 ring-slate-200 transition-all focus:ring-2 focus:ring-slate-900"/>
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Валюта</label>
+                        <label class="mb-1.5 block text-xs font-medium text-slate-400">Валюта</label>
                         <select name="currency"
-                                class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                class="w-full rounded-xl bg-white px-3 py-2 text-sm outline-none ring-1 ring-slate-200 transition-all focus:ring-2 focus:ring-slate-900">
                             <option value="RUB" {% if project.currency == 'RUB' %}selected{% endif %}>₽ RUB</option>
                             <option value="USD" {% if project.currency == 'USD' %}selected{% endif %}>$ USD</option>
                             <option value="EUR" {% if project.currency == 'EUR' %}selected{% endif %}>€ EUR</option>
                         </select>
                     </div>
-                    <div>
-                        <button type="submit"
-                                class="w-full py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">
-                            Добавить
-                        </button>
+                    <div class="flex gap-2">
+                        <button type="submit" class="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800">Сохранить</button>
+                        <button type="button" @click="showAddPayment=false" class="px-3 py-2 text-sm text-slate-400 transition-colors hover:text-slate-700">Отмена</button>
                     </div>
                 </form>
             </div>
 
-            <!-- Payments list -->
-            <div class="bg-white rounded-xl border border-slate-200">
-                <div class="px-5 py-4 border-b border-slate-100">
-                    <h3 class="text-sm font-semibold text-slate-900">Платежи по проекту</h3>
-                </div>
-                <div id="project-payments-list" class="divide-y divide-slate-50">
-                    {% for payment in payments %}
-                        {% include "projects/payment_row.html" %}
-                    {% else %}
-                        <div class="px-5 py-8 text-center text-sm text-slate-400">
-                            Платежей пока нет
-                        </div>
-                    {% endfor %}
-                </div>
+            <div id="project-payments-list" data-empty-state="#project-payments-empty" data-item-selector="[id^='proj-payment-']" class="divide-y divide-slate-50">
+                {% for payment in payments %}
+                    {% include "projects/payment_row.html" %}
+                {% endfor %}
             </div>
+            <p id="project-payments-empty" class="pt-4 text-sm text-slate-400 {{ 'hidden' if payments else '' }}">Платежей пока нет</p>
+        </section>
 
-            <!-- Documents upload -->
-            <div class="bg-white rounded-xl border border-slate-200 p-5">
-                <h3 class="text-sm font-semibold text-slate-900 mb-4">Документы</h3>
-                <form
-                    hx-post="/documents/upload"
-                    hx-target="#project-documents"
-                    hx-swap="afterbegin"
-                    hx-encoding="multipart/form-data"
-                    hx-on::after-request="this.reset()"
-                    class="grid grid-cols-2 md:grid-cols-3 gap-3 items-end mb-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Название</label>
-                        <input type="text" name="title" required placeholder="Договор №1"
-                               class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Тип</label>
-                        <select name="doc_type"
-                                class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                            <option value="contract">Договор</option>
-                            <option value="invoice">Счёт</option>
-                            <option value="act">Акт</option>
-                            <option value="other">Другое</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Файл</label>
-                        <input type="file" name="file" required
-                               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                               class="w-full text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
-                    </div>
+        <!-- Documents -->
+        <section class="rounded-2xl bg-white p-6">
+            <div class="mb-5 flex items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-900">Документы</h3>
+                    <p class="mt-1 text-xs text-slate-400">Файлы по проекту</p>
+                </div>
+                <form hx-post="/documents/upload"
+                      hx-target="#project-documents"
+                      hx-swap="afterbegin"
+                      hx-encoding="multipart/form-data"
+                      hx-on::after-request="if(event.detail.successful){ this.reset(); }">
                     <input type="hidden" name="project_id" value="{{ project.id }}">
-                    <div class="col-span-2 md:col-span-3 flex justify-end">
-                        <button type="submit"
-                                class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">
-                            Загрузить
-                        </button>
-                    </div>
+                    <input type="hidden" name="doc_type" value="other">
+                    <label class="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                        Прикрепить
+                        <input type="file" name="files" multiple
+                               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                               class="sr-only"
+                               onchange="if(this.files.length){ this.form.requestSubmit(); }"/>
+                    </label>
                 </form>
-
-                <div id="project-documents" class="space-y-2">
-                    {% for doc in project.documents %}
-                        {% include "partials/document_card.html" with context %}
-                    {% else %}
-                        <p class="text-sm text-slate-400 text-center py-4">Документов пока нет</p>
-                    {% endfor %}
-                </div>
             </div>
-        </div>
+
+            <div id="project-documents" data-empty-state="#project-documents-empty" data-item-selector="[data-document-item]" class="space-y-2">
+                {% for doc in project.documents %}
+                    {% with document=doc %}
+                        {% include "partials/document_card.html" %}
+                    {% endwith %}
+                {% endfor %}
+            </div>
+            <p id="project-documents-empty" class="pt-2 text-sm text-slate-400 {{ 'hidden' if project.documents else '' }}">Документов пока нет</p>
+        </section>
     </div>
 </div>
 
 <!-- Edit Project Modal -->
-<div id="edit-project-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
-    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"
-         onclick="document.getElementById('edit-project-modal').classList.add('hidden')"></div>
-    <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-xl mx-4 z-10 max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white">
+<div id="edit-project-modal" style="display:none"
+     class="fixed inset-0 z-50 flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+         onclick="document.getElementById('edit-project-modal').style.display='none'"></div>
+    <div class="relative z-10 mx-4 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-100 px-6 py-5 sticky top-0 bg-white z-10">
             <h3 class="text-base font-semibold text-slate-900">Редактировать проект</h3>
-            <button onclick="document.getElementById('edit-project-modal').classList.add('hidden')"
-                    class="text-slate-400 hover:text-slate-600 transition-colors">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button onclick="document.getElementById('edit-project-modal').style.display='none'"
+                    class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
             </button>
         </div>
-        <form
-            hx-put="/projects/{{ project.id }}"
-            hx-target="body"
-            hx-push-url="true"
-            class="px-6 py-5">
+        <form hx-put="/projects/{{ project.id }}"
+              hx-target="#page-content"
+              hx-select="#page-content"
+              hx-swap="outerHTML"
+              class="px-6 py-5">
             {% include "projects/form.html" %}
-            <div class="flex justify-end gap-3 pt-4 mt-4 border-t border-slate-100">
+            <div class="flex justify-end gap-3 pt-5 mt-2 border-t border-slate-50">
                 <button type="button"
-                        onclick="document.getElementById('edit-project-modal').classList.add('hidden')"
-                        class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 transition-colors">
+                        onclick="document.getElementById('edit-project-modal').style.display='none'"
+                        class="px-4 py-2.5 text-sm text-slate-500 hover:text-slate-800 transition-colors">
                     Отмена
                 </button>
                 <button type="submit"
-                        class="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">
+                        class="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-800">
                     Сохранить
                 </button>
             </div>

@@ -2,7 +2,7 @@ from datetime import date
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
+from app.templates_config import templates
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
@@ -12,7 +12,6 @@ from app.services.currency import currency_service
 from app.services.stats import stats_service
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/api/rates", response_class=JSONResponse)
@@ -50,6 +49,7 @@ async def dashboard(
                 Payment.month == month,
                 Payment.year == year,
             )
+            .order_by(Payment.id.desc())
             .first()
         )
         clients_with_status.append({
@@ -109,6 +109,7 @@ async def dashboard_stats(
                 Payment.month == month,
                 Payment.year == year,
             )
+            .order_by(Payment.id.desc())
             .first()
         )
         clients_with_status.append({

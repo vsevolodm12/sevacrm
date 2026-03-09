@@ -1,12 +1,44 @@
-<tr class="border-b border-slate-50 last:border-0">
-    <td class="py-3 text-sm text-slate-700">{{ payment.month }}/{{ payment.year }}</td>
-    <td class="py-3 text-sm font-medium text-slate-900">
-        {% if payment.currency == 'USD' %}${% elif payment.currency == 'EUR' %}€{% else %}₽{% endif %}
-        {{ "%.0f"|format(payment.amount) }}
+<tr id="detail-payment-{{ payment.id }}">
+    <td class="py-3 text-sm font-medium text-slate-700">
+        {{ '%02d.%02d.%d' % (payment.payment_day or 1, payment.month, payment.year) }}
+        {% if payment.notes %}<span class="ml-2 text-xs text-slate-400">{{ payment.notes }}</span>{% endif %}
     </td>
-    <td class="py-3">
-        <span class="px-2 py-0.5 text-xs rounded-full {{ 'bg-emerald-50 text-emerald-700' if payment.is_paid else 'bg-amber-50 text-amber-700' }}">
-            {{ 'Оплачено' if payment.is_paid else 'Ожидает' }}
-        </span>
+    <td class="py-3 text-right text-sm font-semibold text-slate-900">
+        {{ payment.amount|money }} {% if payment.currency == 'USD' %}${% elif payment.currency == 'EUR' %}€{% else %}₽{% endif %}
+    </td>
+    <td class="py-3 text-center">
+        <div id="detail-toggle-{{ payment.id }}">
+            <button hx-put="/orders/payments/{{ payment.id }}/toggle"
+                    hx-target="#detail-toggle-{{ payment.id }}"
+                    hx-swap="outerHTML"
+                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors {{ 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' if payment.is_paid else 'bg-amber-50 text-amber-700 hover:bg-amber-100' }}">
+                {% if payment.is_paid %}
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                Оплачено
+                {% else %}
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Ожидает
+                {% endif %}
+            </button>
+        </div>
+    </td>
+    <td class="py-3 text-right">
+        <div class="inline-flex items-center gap-0.5">
+            <button hx-get="/orders/payments/{{ payment.id }}/edit"
+                    hx-target="#detail-payment-{{ payment.id }}"
+                    hx-swap="outerHTML"
+                    class="rounded-lg p-1.5 text-slate-300 transition-colors hover:text-indigo-500">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+            </button>
+            <button type="button"
+                    onclick="showDel('Удалить платёж {{ payment.month }}/{{ payment.year }}?', () => htmx.ajax('DELETE', '/orders/payments/{{ payment.id }}', {target:'#detail-payment-{{ payment.id }}', swap:'delete'}))"
+                    class="rounded-lg p-1.5 text-slate-300 transition-colors hover:text-red-500">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+            </button>
+        </div>
     </td>
 </tr>

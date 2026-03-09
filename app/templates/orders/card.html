@@ -1,17 +1,21 @@
 {% set sym = '$' if order.currency == 'USD' else ('€' if order.currency == 'EUR' else '₽') %}
 <div id="order-{{ order.id }}"
-     class="group flex items-center px-6 py-4 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors {{ 'opacity-50' if not order.is_active }}"
+     class="group flex items-center px-6 py-4 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors"
      onclick="spaNavigate('/orders/{{ order.id }}')">
 
-    <!-- Status dot -->
-    <span class="w-2 h-2 rounded-full flex-shrink-0 mr-5 {{ 'bg-emerald-400' if order.is_active else 'bg-slate-300' }}"></span>
+    <span class="w-2 h-2 rounded-full flex-shrink-0 mr-5 {{ 'bg-indigo-400' if order.is_completed else ('bg-emerald-400' if order.is_active else 'bg-slate-300') }}"></span>
 
-    <!-- Name + Title + meta -->
     <div class="flex-1 min-w-0 mr-8">
         <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-sm font-semibold text-slate-900">{{ order.name }}</span>
-            {% if order.title %}
-            <span class="text-sm text-slate-400">{{ order.title }}</span>
+            <span class="text-sm font-semibold text-slate-900">{{ order.title or order.name }}</span>
+            {% if order.title and order.title != order.name %}
+            <span class="text-xs text-slate-400">{{ order.name }}</span>
+            {% endif %}
+            {% if order.is_completed %}
+            <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-600">
+                <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                Завершён
+            </span>
             {% endif %}
         </div>
         {% if order.phone or order.start_date %}
@@ -22,26 +26,23 @@
         {% endif %}
     </div>
 
-    <!-- Partner -->
     {% if order.partner %}
     <span class="text-xs text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full mr-8 flex-shrink-0 hidden sm:block">{{ order.partner.name }}</span>
     {% endif %}
 
-    <!-- Fees -->
     <div class="flex items-center gap-6 mr-8 flex-shrink-0">
         <div class="text-right">
             <p class="text-xs text-slate-400 mb-0.5">Обслуживание</p>
-            <p class="text-sm font-semibold text-slate-900">{{ sym }}{{ "%.0f"|format(order.monthly_fee or 0) }}<span class="text-xs font-normal text-slate-400">/мес</span></p>
+            <p class="text-sm font-semibold text-slate-900">{{ (order.monthly_fee or 0)|money }} {{ sym }}<span class="text-xs font-normal text-slate-400">/мес</span></p>
         </div>
         {% if order.dev_price and order.dev_price > 0 %}
         <div class="text-right hidden md:block">
             <p class="text-xs text-slate-400 mb-0.5">Разработка</p>
-            <p class="text-sm font-semibold text-slate-900">{{ sym }}{{ "%.0f"|format(order.dev_price) }}</p>
+            <p class="text-sm font-semibold text-slate-900">{{ order.dev_price|money }} {{ sym }}</p>
         </div>
         {% endif %}
     </div>
 
-    <!-- Payment status -->
     <div id="payment-toggle-{{ order.id }}" class="mr-4 flex-shrink-0" onclick="event.stopPropagation()">
         {% if current_payment %}
             <button hx-put="/orders/payments/{{ current_payment.id }}/toggle"
@@ -61,16 +62,11 @@
                 Ожидает
                 {% endif %}
             </button>
-        {% else %}
-            <span class="text-xs text-slate-300 px-2.5 py-1">нет записи</span>
         {% endif %}
     </div>
 
-    <!-- Delete (instant, no confirm) -->
-    <button hx-delete="/orders/{{ order.id }}"
-            hx-target="#order-{{ order.id }}"
-            hx-swap="outerHTML"
-            onclick="event.stopPropagation()"
+    <button type="button"
+            onclick="event.stopPropagation(); showDel('Удалить заказ «{{ order.title or order.name }}»?', () => htmx.ajax('DELETE', '/orders/{{ order.id }}', {target:'#order-{{ order.id }}', swap:'delete'}))"
             class="p-1.5 text-slate-300 hover:text-red-500 transition-colors rounded-lg opacity-0 group-hover:opacity-100 flex-shrink-0">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

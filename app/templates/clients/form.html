@@ -1,45 +1,44 @@
 {% if client is defined and client and client.id %}
-<!-- Edit form (inline) -->
-<div class="mt-4 pt-4 border-t border-slate-100">
-    <form
-        hx-put="/clients/{{ client.id }}"
-        hx-target="#client-{{ client.id }}"
-        hx-swap="outerHTML"
-        class="space-y-3">
+<!-- Inline edit form -->
+<div class="border-t border-slate-100 p-5">
+    <form hx-put="/clients/{{ client.id }}"
+          hx-target="#client-{{ client.id }}"
+          hx-swap="outerHTML"
+          class="space-y-3">
         <div class="grid grid-cols-2 gap-3">
             <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Имя *</label>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Имя *</label>
                 <input type="text" name="name" value="{{ client.name }}" required
-                       class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                       class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all"/>
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Компания</label>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Компания</label>
                 <input type="text" name="company" value="{{ client.company or '' }}"
-                       class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                       class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all"/>
             </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
             <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Телефон</label>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Телефон</label>
                 <input type="text" name="phone" value="{{ client.phone or '' }}"
-                       class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                       class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all"/>
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Email</label>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
                 <input type="email" name="email" value="{{ client.email or '' }}"
-                       class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                       class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all"/>
             </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
             <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Абон. плата</label>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Абон. плата</label>
                 <input type="number" name="monthly_fee" value="{{ client.monthly_fee or 0 }}" step="0.01" min="0"
-                       class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                       class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all"/>
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Валюта</label>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Валюта</label>
                 <select name="currency"
-                        class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all">
                     <option value="RUB" {% if client.currency == 'RUB' %}selected{% endif %}>₽ RUB</option>
                     <option value="USD" {% if client.currency == 'USD' %}selected{% endif %}>$ USD</option>
                     <option value="EUR" {% if client.currency == 'EUR' %}selected{% endif %}>€ EUR</option>
@@ -47,9 +46,9 @@
             </div>
         </div>
         <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Партнёр</label>
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">Партнёр</label>
             <select name="partner_id"
-                    class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all">
                 <option value="">Без партнёра</option>
                 {% for p in partners %}
                 <option value="{{ p.id }}" {% if client.partner_id == p.id %}selected{% endif %}>{{ p.name }}</option>
@@ -57,66 +56,63 @@
             </select>
         </div>
         <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Заметки</label>
+            <label class="block text-xs font-medium text-slate-400 mb-1.5">Заметки</label>
             <textarea name="notes" rows="2"
-                      class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none">{{ client.notes or '' }}</textarea>
+                      class="w-full bg-slate-50 ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900 focus:bg-white rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all resize-none">{{ client.notes or '' }}</textarea>
         </div>
-        <div class="flex items-center gap-2">
-            <input type="checkbox" name="is_active" id="client_active_{{ client.id }}"
-                   value="on" {% if client.is_active %}checked{% endif %}
-                   class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-            <label for="client_active_{{ client.id }}" class="text-xs text-slate-600">Активен</label>
-        </div>
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+            <input type="checkbox" name="is_active" value="on" {{ 'checked' if client.is_active }} class="sr-only peer">
+            <div class="w-9 h-5 bg-slate-200 peer-checked:bg-emerald-500 rounded-full relative transition-colors
+                        after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-4 after:h-4 after:bg-white after:rounded-full after:transition-all
+                        peer-checked:after:translate-x-4"></div>
+            <span class="text-xs text-slate-500">Активен</span>
+        </label>
         <div class="flex justify-end gap-2 pt-1">
             <button type="button"
-                    onclick="document.getElementById('client-edit-{{ client.id }}').innerHTML = ''"
-                    class="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-800 transition-colors">
-                Отмена
-            </button>
+                    onclick="document.getElementById('client-edit-{{ client.id }}').innerHTML=''"
+                    class="px-3 py-2 text-sm text-slate-500 hover:text-slate-800 transition-colors">Отмена</button>
             <button type="submit"
-                    class="px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors">
-                Сохранить
-            </button>
+                    class="px-4 py-2 text-sm bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors">Сохранить</button>
         </div>
     </form>
 </div>
 {% else %}
 <!-- New client form fields -->
 <div class="space-y-4">
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-3">
         <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Имя *</label>
+            <label class="mb-2 block text-sm font-medium text-slate-600">Имя *</label>
             <input type="text" name="name" required placeholder="Иван Иванов"
-                   class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                   class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
         </div>
         <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Компания</label>
+            <label class="mb-2 block text-sm font-medium text-slate-600">Компания</label>
             <input type="text" name="company" placeholder="ООО Ромашка"
-                   class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                   class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
         </div>
     </div>
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-3">
         <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Телефон</label>
+            <label class="mb-2 block text-sm font-medium text-slate-600">Телефон</label>
             <input type="text" name="phone" placeholder="+7 900 000 00 00"
-                   class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                   class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
         </div>
         <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Email</label>
+            <label class="mb-2 block text-sm font-medium text-slate-600">Email</label>
             <input type="email" name="email" placeholder="client@example.com"
-                   class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                   class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
         </div>
     </div>
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-3">
         <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Абонентская плата</label>
+            <label class="mb-2 block text-sm font-medium text-slate-600">Абон. плата</label>
             <input type="number" name="monthly_fee" value="0" step="0.01" min="0" placeholder="5000"
-                   class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"/>
+                   class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900"/>
         </div>
         <div>
-            <label class="block text-xs font-medium text-slate-600 mb-1">Валюта</label>
+            <label class="mb-2 block text-sm font-medium text-slate-600">Валюта</label>
             <select name="currency"
-                    class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                    class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900">
                 <option value="RUB">₽ RUB</option>
                 <option value="USD">$ USD</option>
                 <option value="EUR">€ EUR</option>
@@ -124,9 +120,9 @@
         </div>
     </div>
     <div>
-        <label class="block text-xs font-medium text-slate-600 mb-1">Партнёр (доля 50/50)</label>
+        <label class="mb-2 block text-sm font-medium text-slate-600">Партнёр <span class="text-xs font-normal text-slate-300">доля 50/50</span></label>
         <select name="partner_id"
-                class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900">
             <option value="">Без партнёра</option>
             {% for p in partners %}
             <option value="{{ p.id }}">{{ p.name }}</option>
@@ -134,9 +130,9 @@
         </select>
     </div>
     <div>
-        <label class="block text-xs font-medium text-slate-600 mb-1">Заметки</label>
+        <label class="mb-2 block text-sm font-medium text-slate-600">Заметки</label>
         <textarea name="notes" rows="2" placeholder="Дополнительная информация..."
-                  class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"></textarea>
+                  class="w-full rounded-xl bg-slate-50 px-4 py-3 text-sm outline-none ring-1 ring-slate-200 transition-all focus:bg-white focus:ring-2 focus:ring-slate-900 resize-none"></textarea>
     </div>
 </div>
 {% endif %}
