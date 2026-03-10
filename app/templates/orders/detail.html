@@ -79,8 +79,7 @@
                     <div>
                         <p class="text-xs text-slate-400">Партнёр</p>
                         <div class="mt-1 inline-flex items-center gap-2">
-                            <span class="text-sm font-medium text-purple-700">{{ order.partner.name }}</span>
-                            <span class="rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-semibold text-purple-700">50/50</span>
+                            <span class="text-sm font-medium text-blue-700">{{ order.partner.name }}</span>
                         </div>
                     </div>
                     {% endif %}
@@ -106,7 +105,8 @@
             </div>
             <div class="bg-white px-6 py-5">
                 <p class="text-xs text-slate-400">Остаток</p>
-                <p class="mt-2 text-xl font-bold text-amber-600">{{ ((order.dev_price or 0) - (order.advance_amount or 0))|money }} {{ sym }}</p>
+                {% set remainder = (order.dev_price or 0) - paid_total %}
+                <p class="mt-2 text-xl font-bold {{ 'text-emerald-600' if remainder <= 0 else 'text-amber-600' }}">{{ remainder|money }} {{ sym }}</p>
             </div>
         </div>
     </section>

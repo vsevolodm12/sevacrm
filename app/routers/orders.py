@@ -161,6 +161,7 @@ async def order_detail(
     maintenance_acts = [d for d in all_docs if d.doc_type == "act"]
     maintenance_invoices = [d for d in all_docs if d.doc_type == "invoice"]
     today = date.today()
+    paid_total = sum(float(p.amount) for p in payments if p.is_paid)
     return templates.TemplateResponse(
         "orders/detail.html",
         {
@@ -174,6 +175,7 @@ async def order_detail(
             "maintenance_acts": maintenance_acts,
             "maintenance_invoices": maintenance_invoices,
             "today": today,
+            "paid_total": paid_total,
         }
     )
 
@@ -304,6 +306,7 @@ async def update_order(
         documents = [d for d in all_docs if d.doc_type not in ("act", "invoice")]
         maintenance_acts = [d for d in all_docs if d.doc_type == "act"]
         maintenance_invoices = [d for d in all_docs if d.doc_type == "invoice"]
+        paid_total = sum(float(p.amount) for p in payments if p.is_paid)
         response = templates.TemplateResponse(
             "orders/detail.html",
             {
@@ -317,6 +320,7 @@ async def update_order(
                 "maintenance_acts": maintenance_acts,
                 "maintenance_invoices": maintenance_invoices,
                 "today": today,
+                "paid_total": paid_total,
             },
         )
     else:

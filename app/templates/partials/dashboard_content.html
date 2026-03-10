@@ -111,7 +111,7 @@
                             <a href="/orders/{{ item.client.id }}"
                                class="text-sm font-medium text-slate-900 hover:text-indigo-600 transition-colors truncate block">{{ item.client.title or item.client.name }}</a>
                             {% if item.client.partner %}
-                            <span class="text-xs text-purple-500">{{ item.client.partner.name }} · 50/50</span>
+                            <span class="text-xs text-blue-500">{{ item.client.partner.name }}</span>
                             {% endif %}
                         </div>
                     </div>
