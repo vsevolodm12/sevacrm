@@ -112,7 +112,8 @@
     const myData = {{ monthly_history | map(attribute='my_income') | list | tojson }};
     const partnerData = {{ monthly_history | map(attribute='partner_income') | list | tojson }};
 
-    function initIncomeChart() {
+    // Always update global ref so afterSettle uses the latest data
+    window._buildIncomeChart = function() {
         if (!window.Chart) return;
         const canvas = document.getElementById('incomeChart');
         if (!canvas) return;
@@ -121,99 +122,105 @@
             window.incomeChart = null;
         }
         const ctx = canvas.getContext('2d');
-
-    window.incomeChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Мой доход',
-                    data: myData,
-                    backgroundColor: function(context) {
-                        const chart = context.chart;
-                        const {ctx: c, chartArea} = chart;
-                        if (!chartArea) return 'rgba(99,102,241,0.8)';
-                        const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-                        g.addColorStop(0, 'rgba(99,102,241,0.9)');
-                        g.addColorStop(1, 'rgba(129,140,248,0.4)');
-                        return g;
+        window.incomeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Мой доход',
+                        data: myData,
+                        backgroundColor: function(context) {
+                            const chart = context.chart;
+                            const {ctx: c, chartArea} = chart;
+                            if (!chartArea) return 'rgba(99,102,241,0.8)';
+                            const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                            g.addColorStop(0, 'rgba(99,102,241,0.9)');
+                            g.addColorStop(1, 'rgba(129,140,248,0.4)');
+                            return g;
+                        },
+                        borderColor: 'rgba(99,102,241,0)',
+                        borderWidth: 0,
+                        borderRadius: { topLeft: 6, topRight: 6 },
+                        borderSkipped: false,
                     },
-                    borderColor: 'rgba(99,102,241,0)',
-                    borderWidth: 0,
-                    borderRadius: { topLeft: 6, topRight: 6 },
-                    borderSkipped: false,
-                },
-                {
-                    label: 'Доля партнёров',
-                    data: partnerData,
-                    backgroundColor: 'rgba(168,85,247,0.5)',
-                    borderColor: 'rgba(168,85,247,0)',
-                    borderWidth: 0,
-                    borderRadius: { topLeft: 0, topRight: 0 },
-                    borderSkipped: 'bottom',
-                    hidden: true,
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: 'rgba(15,23,42,0.9)',
-                    titleColor: '#94a3b8',
-                    bodyColor: '#f1f5f9',
-                    padding: 12,
-                    cornerRadius: 10,
-                    titleFont: { size: 11 },
-                    bodyFont: { size: 12, weight: '600' },
-                    callbacks: {
-                        label: function(context) {
-                            if (context.dataset.hidden) return null;
-                            const val = Math.round(context.raw).toLocaleString('ru-RU');
-                            return ' ' + context.dataset.label + ': ' + val + '\u00a0₽';
+                    {
+                        label: 'Доля партнёров',
+                        data: partnerData,
+                        backgroundColor: 'rgba(168,85,247,0.5)',
+                        borderColor: 'rgba(168,85,247,0)',
+                        borderWidth: 0,
+                        borderRadius: { topLeft: 0, topRight: 0 },
+                        borderSkipped: 'bottom',
+                        hidden: true,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.9)',
+                        titleColor: '#94a3b8',
+                        bodyColor: '#f1f5f9',
+                        padding: 12,
+                        cornerRadius: 10,
+                        titleFont: { size: 11 },
+                        bodyFont: { size: 12, weight: '600' },
+                        callbacks: {
+                            label: function(context) {
+                                if (context.dataset.hidden) return null;
+                                const val = Math.round(context.raw).toLocaleString('ru-RU');
+                                return ' ' + context.dataset.label + ': ' + val + '\u00a0₽';
+                            }
                         }
                     }
-                }
-            },
-            scales: {
-                x: {
-                    stacked: true,
-                    grid: { display: false },
-                    border: { display: false },
-                    ticks: { font: { size: 11 }, color: '#94a3b8', maxRotation: 0 }
                 },
-                y: {
-                    stacked: true,
-                    grid: { color: 'rgba(241,245,249,0.8)', drawBorder: false },
-                    border: { display: false, dash: [4, 4] },
-                    ticks: {
-                        font: { size: 11 },
-                        color: '#94a3b8',
-                        callback: function(value) {
-                            if (value === 0) return '0';
-                            if (value >= 1000000) return (value/1000000).toFixed(1) + '\u00a0M\u00a0₽';
-                            if (value >= 1000) return (value/1000).toFixed(0) + '\u00a0K\u00a0₽';
-                            return value + '\u00a0₽';
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: { display: false },
+                        border: { display: false },
+                        ticks: { font: { size: 11 }, color: '#94a3b8', maxRotation: 0 }
+                    },
+                    y: {
+                        stacked: true,
+                        grid: { color: 'rgba(241,245,249,0.8)' },
+                        border: { display: false, dash: [4, 4] },
+                        ticks: {
+                            font: { size: 11 },
+                            color: '#94a3b8',
+                            callback: function(value) {
+                                if (value === 0) return '0';
+                                if (value >= 1000000) return (value/1000000).toFixed(1) + '\u00a0M\u00a0₽';
+                                if (value >= 1000) return (value/1000).toFixed(0) + '\u00a0K\u00a0₽';
+                                return value + '\u00a0₽';
+                            }
                         }
                     }
                 }
             }
-        }
-    });
-    }
+        });
+    };
 
-    initIncomeChart();
-
+    // Register listener only once; always calls the latest _buildIncomeChart
     if (!window._incomeChartListener) {
         window._incomeChartListener = true;
         document.addEventListener('htmx:afterSettle', function() {
-            if (document.getElementById('incomeChart')) initIncomeChart();
+            if (document.getElementById('incomeChart')) window._buildIncomeChart();
+        });
+        document.addEventListener('DOMContentLoaded', function() {
+            if (document.getElementById('incomeChart')) window._buildIncomeChart();
         });
     }
+
+    // requestAnimationFrame defers until browser has computed layout (fixes 0-height canvas)
+    requestAnimationFrame(function() {
+        if (document.getElementById('incomeChart')) window._buildIncomeChart();
+    });
 })();
 </script>
 {% endblock %}

@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    container_name: sevacrm_app
+    volumes:
+      - /opt/sevacrm/sevacrm.db:/app/sevacrm.db
+      - /opt/sevacrm/uploads:/app/uploads
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=sqlite:///./sevacrm.db
+      - UPLOAD_DIR=uploads
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
