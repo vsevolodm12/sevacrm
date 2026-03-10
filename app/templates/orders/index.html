@@ -233,11 +233,11 @@
 </div>
 
 <script>
-function closeOrderModal() {
+window.closeOrderModal = function closeOrderModal() {
     document.getElementById('add-order-modal').style.display = 'none';
 }
 
-function orderForm() {
+window.orderForm = function orderForm() {
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
     return {
