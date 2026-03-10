@@ -9,9 +9,9 @@
     showPartner: false,
     togglePartner() {
         this.showPartner = !this.showPartner;
-        if (window.incomeChart) {
-            window.incomeChart.data.datasets[1].hidden = !this.showPartner;
-            window.incomeChart.update('active');
+        if (window._incomeChartInst) {
+            window._incomeChartInst.data.datasets[1].hidden = !this.showPartner;
+            window._incomeChartInst.update('active');
         }
     }
 }">
@@ -117,12 +117,12 @@
         if (!window.Chart) return;
         const canvas = document.getElementById('incomeChart');
         if (!canvas) return;
-        if (window.incomeChart) {
-            window.incomeChart.destroy();
-            window.incomeChart = null;
+        if (window._incomeChartInst) {
+            window._incomeChartInst.destroy();
+            window._incomeChartInst = null;
         }
         const ctx = canvas.getContext('2d');
-        window.incomeChart = new Chart(ctx, {
+        window._incomeChartInst = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
