@@ -91,13 +91,13 @@ async def orders_index(
             "current_payment": payment,
         })
 
-    # Maintenance total in RUB (only active orders)
+    # Моя доля обслуживания в RUB (только активные заказы, 50/50 с партнёром)
     maintenance_rub = 0.0
     for item in orders_with_payment:
         o = item["order"]
         if o.is_active:
             fee_rub = await currency_service.convert_to_rub(float(o.monthly_fee or 0), o.currency or "RUB")
-            maintenance_rub += fee_rub
+            maintenance_rub += fee_rub / 2 if o.partner_id else fee_rub
 
     return templates.TemplateResponse(
         "orders/index.html",
