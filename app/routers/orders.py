@@ -83,6 +83,7 @@ async def orders_index(
                 Payment.client_id == order.id,
                 Payment.month == today.month,
                 Payment.year == today.year,
+                Payment.payment_type == "maintenance",
             )
             .first()
         )

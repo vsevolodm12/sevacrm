@@ -9,6 +9,7 @@ from app.auth import get_current_user
 from app.database import get_db
 from app.htmx import set_htmx_toast
 from app.models.models import Client, Partner, Payment, User
+from app.services.currency import currency_service
 
 router = APIRouter(prefix="/clients")
 
@@ -241,9 +242,11 @@ async def create_payment(
         )
         .first()
     )
+    amount_rub = round(await currency_service.convert_to_rub(amount, currency), 2)
     if existing:
         existing.amount = amount
         existing.currency = currency
+        existing.amount_rub = amount_rub
         existing.notes = notes or None
         db.commit()
         db.refresh(existing)
@@ -255,6 +258,7 @@ async def create_payment(
             year=year,
             amount=amount,
             currency=currency,
+            amount_rub=amount_rub,
             notes=notes or None,
         )
         db.add(payment)
