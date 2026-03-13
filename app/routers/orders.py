@@ -14,6 +14,7 @@ from app.config import settings
 from app.database import get_db
 from app.htmx import set_htmx_toast
 from app.models.models import Client, Document, Partner, Payment, User
+from app.services.currency import currency_service
 
 ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".png", ".jpg", ".jpeg"}
 
@@ -430,6 +431,7 @@ async def create_payment(
         today = _date.today()
         month, year, day = today.month, today.year, today.day
 
+    amount_rub = await currency_service.convert_to_rub(amount, currency)
     payment = Payment(
         client_id=order_id,
         month=month,
@@ -438,6 +440,7 @@ async def create_payment(
         payment_type=payment_type if payment_type in ("order", "maintenance") else "order",
         amount=amount,
         currency=currency,
+        amount_rub=round(amount_rub, 2),
         notes=notes or None,
     )
     db.add(payment)
@@ -506,6 +509,7 @@ async def update_payment(
         payment.payment_day = parsed.day
     payment.amount = amount
     payment.currency = currency
+    payment.amount_rub = round(await currency_service.convert_to_rub(amount, currency), 2)
     payment.notes = notes or None
     db.commit()
     db.refresh(payment)

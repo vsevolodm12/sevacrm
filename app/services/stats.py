@@ -3,6 +3,7 @@ from datetime import date, datetime
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from app.models.models import Client, Payment
+from app.services.currency import currency_service
 
 HISTORY_START_YEAR = 2026
 HISTORY_START_MONTH = 2
@@ -21,34 +22,43 @@ class StatsService:
             if c.start_date is None or c.start_date <= target_dt
         ]
 
-    def _get_payments_split(self, db, payments):
-        """Возвращает (my_paid, partner_paid, my_pending) из списка Payment"""
+    async def _get_payments_split(self, db, payments):
+        """Возвращает (my_paid, partner_paid, my_pending) из списка Payment, суммы в RUB"""
         my_paid = 0.0
         partner_paid = 0.0
         my_pending = 0.0
         for p in payments:
             client = db.query(Client).filter(Client.id == p.client_id).first()
             has_partner = client and client.partner_id is not None
-            amount = float(p.amount)
+            # Используем зафиксированный курс, если есть; иначе конвертируем по текущему
+            if p.amount_rub is not None:
+                amount_rub = float(p.amount_rub)
+            else:
+                amount_rub = await currency_service.convert_to_rub(float(p.amount), p.currency or "RUB")
             if p.is_paid:
                 if has_partner:
-                    my_paid += amount / 2
-                    partner_paid += amount / 2
+                    my_paid += amount_rub / 2
+                    partner_paid += amount_rub / 2
                 else:
-                    my_paid += amount
+                    my_paid += amount_rub
             else:
                 if has_partner:
-                    my_pending += amount / 2
+                    my_pending += amount_rub / 2
                 else:
-                    my_pending += amount
+                    my_pending += amount_rub
         return my_paid, partner_paid, my_pending
 
-    def get_dashboard_stats(self, db: Session, month: int, year: int) -> Dict[str, Any]:
+    async def get_dashboard_stats(self, db: Session, month: int, year: int) -> Dict[str, Any]:
         relevant_clients = self._clients_for_month(db, month, year)
-        monthly_maintenance_total = sum(float(c.monthly_fee or 0) for c in relevant_clients)
+
+        # Сумма обслуживания в RUB
+        monthly_maintenance_total = 0.0
+        for c in relevant_clients:
+            fee_rub = await currency_service.convert_to_rub(float(c.monthly_fee or 0), c.currency or "RUB")
+            monthly_maintenance_total += fee_rub
 
         payments = db.query(Payment).filter(Payment.month == month, Payment.year == year).all()
-        my_paid, partner_paid, my_pending = self._get_payments_split(db, payments)
+        my_paid, partner_paid, my_pending = await self._get_payments_split(db, payments)
 
         return {
             "active_clients_count": len(relevant_clients),
@@ -73,7 +83,7 @@ class StatsService:
                 result.append(c)
         return result
 
-    def get_all_monthly_history(self, db: Session) -> List[Dict[str, Any]]:
+    async def get_all_monthly_history(self, db: Session) -> List[Dict[str, Any]]:
         today = date.today()
         result = []
         year = HISTORY_START_YEAR
@@ -84,7 +94,7 @@ class StatsService:
                 Payment.month == month, Payment.year == year
             ).all()
 
-            my_income, partner_income, _ = self._get_payments_split(db, payments)
+            my_income, partner_income, _ = await self._get_payments_split(db, payments)
 
             result.append({
                 "month": month,
@@ -102,16 +112,16 @@ class StatsService:
 
         return result
 
-    def get_all_time_totals(self, db: Session) -> Dict[str, Any]:
-        history = self.get_all_monthly_history(db)
+    async def get_all_time_totals(self, db: Session) -> Dict[str, Any]:
+        history = await self.get_all_monthly_history(db)
         return {
             "my_total": sum(r["my_income"] for r in history),
             "partner_total": sum(r["partner_income"] for r in history),
             "grand_total": sum(r["total_income"] for r in history),
         }
 
-    def get_monthly_history(self, db: Session, months: int = 12) -> List[Dict[str, Any]]:
-        return self.get_all_monthly_history(db)
+    async def get_monthly_history(self, db: Session, months: int = 12) -> List[Dict[str, Any]]:
+        return await self.get_all_monthly_history(db)
 
 
 stats_service = StatsService()

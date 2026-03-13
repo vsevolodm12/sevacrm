@@ -17,8 +17,8 @@ async def stats_index(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    monthly_history = stats_service.get_all_monthly_history(db)
-    all_time = stats_service.get_all_time_totals(db)
+    monthly_history = await stats_service.get_all_monthly_history(db)
+    all_time = await stats_service.get_all_time_totals(db)
     today = date.today()
     return templates.TemplateResponse(
         "stats/index.html",

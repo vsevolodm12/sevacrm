@@ -56,6 +56,7 @@ def ensure_sqlite_schema():
         missing_payment_columns = {
             "payment_day": "ALTER TABLE payments ADD COLUMN payment_day INTEGER DEFAULT 1",
             "payment_type": "ALTER TABLE payments ADD COLUMN payment_type VARCHAR(20) DEFAULT 'order'",
+            "amount_rub": "ALTER TABLE payments ADD COLUMN amount_rub NUMERIC(14,2)",
         }
         for column, statement in missing_payment_columns.items():
             if column not in payment_columns:

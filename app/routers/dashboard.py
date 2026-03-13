@@ -36,9 +36,9 @@ async def dashboard(
         year = today.year
     month = max(1, min(12, month))
 
-    stats = stats_service.get_dashboard_stats(db, month, year)
+    stats = await stats_service.get_dashboard_stats(db, month, year)
 
-    # Active clients with payment status for current month
+    # Active clients with payment status for current month (maintenance payments only)
     active_clients = db.query(Client).filter(Client.is_active == True).all()
     clients_with_status = []
     for client in active_clients:
@@ -48,6 +48,7 @@ async def dashboard(
                 Payment.client_id == client.id,
                 Payment.month == month,
                 Payment.year == year,
+                Payment.payment_type == "maintenance",
             )
             .order_by(Payment.id.desc())
             .first()
@@ -97,7 +98,7 @@ async def dashboard_stats(
     # Clamp month
     month = max(1, min(12, month))
 
-    stats = stats_service.get_dashboard_stats(db, month, year)
+    stats = await stats_service.get_dashboard_stats(db, month, year)
 
     active_clients = db.query(Client).filter(Client.is_active == True).all()
     clients_with_status = []
@@ -108,6 +109,7 @@ async def dashboard_stats(
                 Payment.client_id == client.id,
                 Payment.month == month,
                 Payment.year == year,
+                Payment.payment_type == "maintenance",
             )
             .order_by(Payment.id.desc())
             .first()

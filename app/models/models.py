@@ -101,6 +101,7 @@ class Payment(Base):
     payment_type = Column(String(20), default="order")  # order / maintenance
     amount = Column(Numeric(12, 2), nullable=False)
     currency = Column(String(3), default="RUB")
+    amount_rub = Column(Numeric(14, 2), nullable=True)  # зафиксированная сумма в RUB по курсу на момент сохранения
     is_paid = Column(Boolean, default=False)
     paid_at = Column(DateTime, nullable=True)
     notes = Column(Text, nullable=True)
