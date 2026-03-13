@@ -39,7 +39,7 @@ async def dashboard(
     stats = await stats_service.get_dashboard_stats(db, month, year)
 
     # Active clients with payment status for current month (maintenance payments only)
-    active_clients = db.query(Client).filter(Client.is_active == True).all()
+    active_clients = db.query(Client).filter(Client.maintenance_enabled == True).all()
     clients_with_status = []
     for client in active_clients:
         payment = (
@@ -100,7 +100,7 @@ async def dashboard_stats(
 
     stats = await stats_service.get_dashboard_stats(db, month, year)
 
-    active_clients = db.query(Client).filter(Client.is_active == True).all()
+    active_clients = db.query(Client).filter(Client.maintenance_enabled == True).all()
     clients_with_status = []
     for client in active_clients:
         payment = (

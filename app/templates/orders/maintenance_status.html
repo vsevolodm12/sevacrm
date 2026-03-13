@@ -1,5 +1,5 @@
 <div id="maintenance-status-{{ order.id }}">
-    {% if order.is_active %}
+    {% if order.maintenance_enabled %}
     <button hx-put="/orders/{{ order.id }}/toggle-maintenance"
             hx-target="#maintenance-status-{{ order.id }}"
             hx-swap="outerHTML"

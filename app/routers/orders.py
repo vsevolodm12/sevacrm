@@ -91,11 +91,11 @@ async def orders_index(
             "current_payment": payment,
         })
 
-    # Моя доля обслуживания в RUB (только активные заказы, 50/50 с партнёром)
+    # Моя доля обслуживания в RUB (только с включённым обслуживанием, 50/50 с партнёром)
     maintenance_rub = 0.0
     for item in orders_with_payment:
         o = item["order"]
-        if o.is_active:
+        if o.maintenance_enabled:
             fee_rub = await currency_service.convert_to_rub(float(o.monthly_fee or 0), o.currency or "RUB")
             maintenance_rub += fee_rub / 2 if o.partner_id else fee_rub
 
@@ -378,7 +378,7 @@ async def toggle_maintenance(
     order = db.query(Client).filter(Client.id == order_id).first()
     if not order:
         return HTMLResponse("Заказ не найден", status_code=404)
-    order.is_active = not order.is_active
+    order.maintenance_enabled = not order.maintenance_enabled
     db.commit()
     db.refresh(order)
     response = templates.TemplateResponse(

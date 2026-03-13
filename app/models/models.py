@@ -54,6 +54,7 @@ class Client(Base):
     currency = Column(String(3), default="RUB")
     is_active = Column(Boolean, default=True)
     is_completed = Column(Boolean, default=False)
+    maintenance_enabled = Column(Boolean, default=True)
     completed_at = Column(DateTime, nullable=True)
     partner_id = Column(Integer, ForeignKey("partners.id"), nullable=True)
     start_date = Column(DateTime, nullable=True)
