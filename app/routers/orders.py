@@ -91,14 +91,13 @@ async def orders_index(
             "current_payment": payment,
         })
 
-    # Maintenance totals per currency (only active orders)
-    from collections import defaultdict
-    maintenance_by_currency = defaultdict(float)
+    # Maintenance total in RUB (only active orders)
+    maintenance_rub = 0.0
     for item in orders_with_payment:
         o = item["order"]
         if o.is_active:
-            cur = o.currency or "RUB"
-            maintenance_by_currency[cur] += float(o.monthly_fee or 0)
+            fee_rub = await currency_service.convert_to_rub(float(o.monthly_fee or 0), o.currency or "RUB")
+            maintenance_rub += fee_rub
 
     return templates.TemplateResponse(
         "orders/index.html",
@@ -106,7 +105,7 @@ async def orders_index(
             "request": request,
             "current_user": current_user,
             "orders_with_payment": orders_with_payment,
-            "maintenance_by_currency": dict(maintenance_by_currency),
+            "maintenance_rub": maintenance_rub,
             "partners": partners,
             "today": today,
         },

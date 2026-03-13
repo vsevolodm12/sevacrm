@@ -27,12 +27,8 @@
     </div>
     <div class="rounded-2xl bg-white px-6 py-5">
         <p class="text-xs text-slate-400">Обслуживание / мес</p>
-        {% if maintenance_by_currency %}
-        <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1">
-            {% for cur, total in maintenance_by_currency.items() %}
-            <p class="text-2xl font-bold text-slate-900">{{ total|money }} {% if cur == 'USD' %}${% elif cur == 'EUR' %}€{% else %}₽{% endif %}</p>
-            {% endfor %}
-        </div>
+        {% if maintenance_rub %}
+        <p class="mt-2 text-2xl font-bold text-slate-900">{{ maintenance_rub|money }} ₽</p>
         {% else %}
         <p class="mt-2 text-2xl font-bold text-slate-300">—</p>
         {% endif %}

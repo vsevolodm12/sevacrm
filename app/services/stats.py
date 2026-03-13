@@ -51,18 +51,23 @@ class StatsService:
     async def get_dashboard_stats(self, db: Session, month: int, year: int) -> Dict[str, Any]:
         relevant_clients = self._clients_for_month(db, month, year)
 
-        # Сумма обслуживания в RUB
+        # Сумма обслуживания в RUB (с учётом доли партнёра)
         monthly_maintenance_total = 0.0
+        monthly_maintenance_my_share = 0.0
         for c in relevant_clients:
             fee_rub = await currency_service.convert_to_rub(float(c.monthly_fee or 0), c.currency or "RUB")
             monthly_maintenance_total += fee_rub
+            if c.partner_id:
+                monthly_maintenance_my_share += fee_rub / 2
+            else:
+                monthly_maintenance_my_share += fee_rub
 
         payments = db.query(Payment).filter(Payment.month == month, Payment.year == year).all()
         my_paid, partner_paid, my_pending = await self._get_payments_split(db, payments)
 
         return {
             "active_clients_count": len(relevant_clients),
-            "monthly_maintenance_total": monthly_maintenance_total,
+            "monthly_maintenance_total": monthly_maintenance_my_share,
             "monthly_maintenance_paid": my_paid,
             "monthly_maintenance_pending": my_pending,
             "partner_paid": partner_paid,
