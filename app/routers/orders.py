@@ -71,7 +71,10 @@ async def orders_index(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    orders = db.query(Client).order_by(Client.name).all()
+    orders = sorted(
+        db.query(Client).order_by(Client.name).all(),
+        key=lambda o: (1 if o.is_completed else 0)
+    )
     partners = db.query(Partner).filter(Partner.is_active == True).all()
     today = date.today()
 
@@ -335,6 +338,44 @@ async def update_order(
             },
         )
     return set_htmx_toast(response, "Заказ обновлён")
+
+
+@router.patch("/{order_id}/toggle-complete", response_class=HTMLResponse)
+async def toggle_order_complete(
+    order_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    order = db.query(Client).filter(Client.id == order_id).first()
+    if not order:
+        return HTMLResponse("Заказ не найден", status_code=404)
+
+    if order.is_completed:
+        order.is_completed = False
+        order.completed_at = None
+    else:
+        order.is_completed = True
+        order.completed_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(order)
+
+    today = date.today()
+    current_payment = (
+        db.query(Payment)
+        .filter(
+            Payment.client_id == order.id,
+            Payment.month == today.month,
+            Payment.year == today.year,
+            Payment.payment_type == "maintenance",
+        )
+        .first()
+    )
+    return templates.TemplateResponse(
+        "orders/card.html",
+        {"request": request, "order": order, "current_payment": current_payment, "today": today},
+    )
 
 
 @router.put("/{order_id}/status", response_class=HTMLResponse)

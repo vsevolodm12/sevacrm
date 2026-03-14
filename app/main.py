@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.templates_config import templates
 from app.database import Base, engine
-from app.routers import auth, dashboard, partners, clients, orders, projects, documents, stats
+from app.routers import auth, dashboard, partners, clients, orders, documents, stats
 
 app = FastAPI(title="SevaCRM", version="1.0.0")
 
@@ -27,7 +27,7 @@ app.include_router(dashboard.router)
 app.include_router(partners.router)
 app.include_router(clients.router)
 app.include_router(orders.router)
-app.include_router(projects.router)
+
 app.include_router(documents.router)
 app.include_router(stats.router)
 

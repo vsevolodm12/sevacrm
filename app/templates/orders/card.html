@@ -1,9 +1,16 @@
 {% set sym = '$' if order.currency == 'USD' else ('€' if order.currency == 'EUR' else '₽') %}
-<div id="order-{{ order.id }}"
+<div id="order-{{ order.id }}" data-completed="{{ 'true' if order.is_completed else 'false' }}"
      class="group flex items-center px-6 py-4 border-b border-slate-100 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors"
      onclick="spaNavigate('/orders/{{ order.id }}')">
 
-    <span class="w-2 h-2 rounded-full flex-shrink-0 mr-5 {{ 'bg-indigo-400' if order.is_completed else ('bg-emerald-400' if order.is_active else 'bg-slate-300') }}"></span>
+    <button type="button"
+            onclick="event.stopPropagation()"
+            hx-patch="/orders/{{ order.id }}/toggle-complete"
+            hx-target="#order-{{ order.id }}"
+            hx-swap="outerHTML"
+            hx-on::after-swap="moveOrderCard({{ order.id }})"
+            title="{{ 'Вернуть в работу' if order.is_completed else 'Отметить завершённым' }}"
+            class="w-2 h-2 rounded-full flex-shrink-0 mr-5 cursor-pointer hover:scale-150 transition-transform {{ 'bg-indigo-400' if order.is_completed else ('bg-emerald-400' if order.is_active else 'bg-slate-300') }}"></button>
 
     <div class="flex-1 min-w-0 mr-8">
         <div class="flex items-center gap-2 flex-wrap">
@@ -12,10 +19,17 @@
             <span class="text-xs text-slate-400">{{ order.name }}</span>
             {% endif %}
             {% if order.is_completed %}
-            <span class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-600">
+            <button type="button"
+                    onclick="event.stopPropagation()"
+                    hx-patch="/orders/{{ order.id }}/toggle-complete"
+                    hx-target="#order-{{ order.id }}"
+                    hx-swap="outerHTML"
+                    hx-on::after-swap="moveOrderCard({{ order.id }})"
+                    title="Вернуть в работу"
+                    class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-600 hover:bg-indigo-100 transition-colors cursor-pointer">
                 <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                 Завершён
-            </span>
+            </button>
             {% endif %}
         </div>
         {% if order.phone or order.start_date %}

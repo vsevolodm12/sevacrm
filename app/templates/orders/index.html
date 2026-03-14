@@ -233,6 +233,23 @@ window.closeOrderModal = function closeOrderModal() {
     document.getElementById('add-order-modal').style.display = 'none';
 }
 
+window.moveOrderCard = function moveOrderCard(id) {
+    var card = document.getElementById('order-' + id);
+    if (!card) return;
+    var grid = document.getElementById('orders-grid');
+    var completed = card.dataset.completed === 'true';
+    if (completed) {
+        grid.appendChild(card);
+    } else {
+        var firstCompleted = grid.querySelector('[data-completed="true"]');
+        if (firstCompleted) {
+            grid.insertBefore(card, firstCompleted);
+        } else {
+            grid.insertBefore(card, grid.firstChild);
+        }
+    }
+}
+
 window.orderForm = function orderForm() {
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
