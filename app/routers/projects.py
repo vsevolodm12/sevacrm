@@ -28,7 +28,9 @@ async def projects_index(
         except ValueError:
             pass
 
-    projects = query.order_by(Project.created_at.desc()).all()
+    all_projects = query.order_by(Project.created_at.desc()).all()
+    status_order = {"new": 0, "in_progress": 1, "completed": 2, "cancelled": 3}
+    projects = sorted(all_projects, key=lambda p: status_order.get(p.status.value, 99))
     clients = db.query(Client).filter(Client.is_active == True).all()
     partners = db.query(Partner).filter(Partner.is_active == True).all()
 
@@ -237,6 +239,35 @@ async def update_project(
             },
         )
     return set_htmx_toast(response, "Проект обновлён")
+
+
+@router.patch("/{project_id}/toggle-complete", response_class=HTMLResponse)
+async def toggle_project_complete(
+    project_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        return HTMLResponse("Проект не найден", status_code=404)
+
+    if project.status == ProjectStatus.completed:
+        project.status = ProjectStatus.in_progress
+    else:
+        project.status = ProjectStatus.completed
+
+    db.commit()
+    db.refresh(project)
+
+    return templates.TemplateResponse(
+        "projects/card.html",
+        {
+            "request": request,
+            "project": project,
+            "ProjectStatus": ProjectStatus,
+        },
+    )
 
 
 @router.delete("/{project_id}")

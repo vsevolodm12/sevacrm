@@ -6,15 +6,21 @@
     'cancelled': 'bg-slate-100 text-slate-500'
 } %}
 
-<div id="project-{{ project.id }}"
+<div id="project-{{ project.id }}" data-status="{{ project.status.value }}"
      class="rounded-2xl bg-white transition-all duration-200">
     <div class="p-5">
         <div class="flex items-start justify-between mb-3">
             <div class="flex-1 min-w-0 pr-2">
                 <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-                    <span class="px-2.5 py-0.5 rounded-full text-xs font-medium {{ status_classes[project.status.value] }}">
+                    <button type="button"
+                            hx-patch="/projects/{{ project.id }}/toggle-complete"
+                            hx-target="#project-{{ project.id }}"
+                            hx-swap="outerHTML"
+                            hx-on::after-swap="moveProjectCard({{ project.id }})"
+                            title="Нажмите чтобы отметить завершённым / вернуть в работу"
+                            class="px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer hover:opacity-70 transition-opacity {{ status_classes[project.status.value] }}">
                         {{ status_labels[project.status.value] }}
-                    </span>
+                    </button>
                     {% if project.partner %}
                     <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                         {{ project.partner.name }}

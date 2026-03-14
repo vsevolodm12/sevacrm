@@ -15,7 +15,7 @@
 
 {% block content %}
 <div class="flex items-center gap-0.5 mb-7 bg-white border border-slate-200 rounded-2xl p-1 w-fit">
-    {% set filters = [('all', 'Все'), ('new', 'Новые'), ('in_progress', 'В работе'), ('completed', 'Завершены'), ('cancelled', 'Отменены')] %}
+    {% set filters = [('all', 'Все'), ('new', 'Новые'), ('in_progress', 'В работе'), ('completed', 'Завершены')] %}
     {% for value, label in filters %}
     <a href="/projects?status_filter={{ value }}"
        class="px-4 py-2 text-sm font-medium rounded-xl transition-colors
@@ -79,6 +79,23 @@
 <script>
 function closeProjectModal() {
     document.getElementById('add-project-modal').style.display = 'none';
+}
+
+function moveProjectCard(id) {
+    var card = document.getElementById('project-' + id);
+    if (!card) return;
+    var grid = document.getElementById('projects-grid');
+    var status = card.dataset.status;
+    if (status === 'completed' || status === 'cancelled') {
+        grid.appendChild(card);
+    } else {
+        var firstDone = grid.querySelector('[data-status="completed"], [data-status="cancelled"]');
+        if (firstDone) {
+            grid.insertBefore(card, firstDone);
+        } else {
+            grid.insertBefore(card, grid.firstChild);
+        }
+    }
 }
 </script>
 {% endblock %}

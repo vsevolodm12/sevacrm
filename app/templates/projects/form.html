@@ -39,7 +39,7 @@
             <option value="new" {% if not is_edit or project.status.value == 'new' %}selected{% endif %}>Новый</option>
             <option value="in_progress" {% if is_edit and project.status.value == 'in_progress' %}selected{% endif %}>В работе</option>
             <option value="completed" {% if is_edit and project.status.value == 'completed' %}selected{% endif %}>Завершён</option>
-            <option value="cancelled" {% if is_edit and project.status.value == 'cancelled' %}selected{% endif %}>Отменён</option>
+
         </select>
     </div>
 
